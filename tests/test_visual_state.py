@@ -1,6 +1,7 @@
 """已应用可视化状态与统一渲染上下文测试。"""
 
 from dataclasses import replace
+from time import perf_counter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -328,8 +329,10 @@ def test_reset_visual_modules_is_atomic_for_invalid_periodic_baseline():
         ),
     )
 
+    started = perf_counter()
     with pytest.raises(ValueError, match="50,000"):
         reset_visual_modules_from_style(current, baseline, atoms)
+    assert perf_counter() - started < 1.0
 
     assert current.style is current.style
     assert current.atom_selection is current.atom_selection

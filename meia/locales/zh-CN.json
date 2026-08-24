@@ -65,6 +65,7 @@
   "file.upload_structure": "上传构型文件",
   "file.upload_structure_help": "支持 POSCAR/CONTCAR、CIF、XYZ、LAMMPS data 等 ASE 可读格式",
   "file.import_style": "导入通用风格预设（JSON）",
+  "file.default_style_path_hint": "默认读取 MEIA-main/meia/defaults/default_style.meia.json",
   "file.import_snapshot": "导入工作状态快照（JSON）",
   "file.apply_style": "应用通用风格预设",
   "file.apply_snapshot": "确认导入工作状态快照",

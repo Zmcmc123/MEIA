@@ -63,7 +63,7 @@ def test_missing_translation_key_fails_loudly():
         I18n(Locale.EN).text("missing.key")
 
 
-def test_radius_profile_help_matches_confirmed_bilingual_copy():
+def test_confirmed_bilingual_ui_copy():
     assert I18n(Locale.ZH_CN).text("atom.radius_mode.help") == (
         "共价半径与相等半径分别保存一套原子大小和化学键粗细的默认参数；"
         "切换方案后，点击“应用原子设置”即可整套应用对应参数。"
@@ -72,6 +72,12 @@ def test_radius_profile_help_matches_confirmed_bilingual_copy():
         "Covalent Radii and Uniform Radii each store a separate default set "
         "of atom-size and bond-thickness parameters. After switching modes, "
         "click “Apply Atom Settings” to apply the corresponding set."
+    )
+    assert I18n(Locale.ZH_CN).text("file.default_style_path_hint") == (
+        "默认读取 MEIA-main/meia/defaults/default_style.meia.json"
+    )
+    assert I18n(Locale.EN).text("file.default_style_path_hint") == (
+        "Defaults to MEIA-main/meia/defaults/default_style.meia.json"
     )
 
 

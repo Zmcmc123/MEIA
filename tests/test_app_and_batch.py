@@ -411,6 +411,9 @@ def test_app_exposes_confirmed_bond_defaults_and_two_json_imports():
         "导入工作状态快照（JSON）",
     }
     assert "导入完整可视化预设（JSON）" not in uploader_labels
+    assert I18n(Locale.ZH_CN).text("file.default_style_path_hint") in [
+        caption.value for caption in app.caption
+    ]
     apply_buttons = [
         button for button in app.button if button.label == "应用化学键设置"
     ]
@@ -2831,6 +2834,7 @@ def _reference_manifest_mapping():
     }
 
 
+@pytest.mark.release
 @pytest.mark.parametrize(
     ("field", "edited_value"),
     [
@@ -2860,6 +2864,7 @@ def test_reference_manifest_gate_rejects_each_code_owned_identity_edit(
         )
 
 
+@pytest.mark.release
 def test_reference_regeneration_rejects_substituted_source_without_writes(
     tmp_path,
 ):
@@ -2928,6 +2933,7 @@ def test_reference_regeneration_rejects_substituted_source_without_writes(
     assert {path: file_identity(path) for path in protected_paths} == before
 
 
+@pytest.mark.release
 def test_regeneration_script_writes_and_checks_manifest_hashes(tmp_path):
     """临时构型的工作区、SVG 与清单哈希必须可逐字节再生。"""
     project_root = Path(__file__).resolve().parents[1]

@@ -7,6 +7,7 @@ import subprocess
 import sys
 from xml.etree import ElementTree as ET
 
+import pytest
 from ase.data import chemical_symbols
 
 import meia
@@ -103,6 +104,7 @@ def test_default_v7_style_is_generic_and_preserves_h_o_multiplier():
     assert preset.style.bonds.hydrogen_bonds == HydrogenBondSettings()
 
 
+@pytest.mark.release
 def test_committed_reference_case_is_current_v7_workspace():
     source_path = PROJECT_ROOT / "examples" / "CONTCAR"
     workspace_path = (
@@ -231,6 +233,7 @@ def test_committed_reference_case_is_current_v7_workspace():
     )
 
 
+@pytest.mark.release
 def test_default_style_and_generator_report_meia_0_11_0(tmp_path):
     """包版本或生成元数据未升级到 0.11.0 时必须失败。"""
     assert meia.__version__ == "0.11.0"
@@ -259,6 +262,7 @@ def test_default_style_and_generator_report_meia_0_11_0(tmp_path):
     assert output.read_bytes() == DEFAULT_STYLE_PATH.read_bytes()
 
 
+@pytest.mark.release
 def test_palette_generator_refuses_silent_overwrite_and_is_deterministic(tmp_path):
     script = PROJECT_ROOT / "scripts" / "generate_default_style.py"
     output = tmp_path / "generated.meia.json"

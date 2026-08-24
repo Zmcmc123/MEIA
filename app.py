@@ -912,6 +912,7 @@ def main() -> None:
             type=["json"],
             key="meia_style_upload",
         )
+        st.caption(i18n.text("file.default_style_path_hint"))
         snapshot_upload = st.file_uploader(
             i18n.text("file.import_snapshot"),
             type=["json"],

@@ -595,12 +595,13 @@ def reset_visual_modules_from_style(
         raise TypeError("当前可视化状态必须是 VisualizationState")
     if not isinstance(baseline, PortableStyle):
         raise TypeError("还原基准必须是 PortableStyle")
-    candidate = merge_portable_style_for_structure(baseline, atoms)
+    normalized_baseline = replace(
+        baseline,
+        cell_periodic=normalize_periodic_settings(atoms, baseline.cell_periodic),
+    )
+    candidate = merge_portable_style_for_structure(normalized_baseline, atoms)
     candidate = replace(
         candidate,
-        cell_periodic=normalize_periodic_settings(
-            atoms, candidate.cell_periodic
-        ),
         view=current.style.view,
         export=current.style.export,
     )

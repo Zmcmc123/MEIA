@@ -93,11 +93,18 @@ npm run build
 
 ## Verification
 
-Run from the project root:
+For routine changes, start with the fast checks:
+
+```bash
+python -m pytest -W error::FutureWarning --strict-markers -q -m "not release"
+```
+
+Before a release, run the complete checks, including reference-artifact
+regeneration and repository-integrity tests:
 
 ```bash
 python -m compileall -q app.py meia scripts tests
-python -m pytest -W error::FutureWarning -q
+python -m pytest -W error::FutureWarning --strict-markers -q
 ```
 
 See [`docs/SPEC.md`](docs/SPEC.md) for requirements and [`docs/PROGRESS.md`](docs/PROGRESS.md) for development status.

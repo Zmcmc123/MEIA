@@ -14,10 +14,13 @@ import {
   normalizeAngleStep,
   orbitCamera,
 } from "./camera-controls.mjs"
+import { createLatestFrameTask } from "./frame-scheduler.mjs"
 import {
   isPrimarySelectionPointer,
+  shouldBlockViewerGesture,
   shouldConsumeSelectionClick,
   shouldMarkCameraInteraction,
+  shouldProjectSelectionAtoms,
 } from "./selection-interactions.mjs"
 import {
   addAtomIndices,
@@ -78,6 +81,16 @@ const selectionBox = document.querySelector("#selection-box")
 const CLICK_HIT_RADIUS = 18
 const DRAG_THRESHOLD = 5
 const DEFAULT_ANGLE_STEP = normalizeAngleStep(angleStepInput.value)
+const SECONDARY_GESTURE_EVENTS = [
+  "pointerdown",
+  "pointermove",
+  "pointerup",
+  "mousedown",
+  "mousemove",
+  "mouseup",
+  "auxclick",
+  "contextmenu",
+]
 
 let structureId = null
 let viewRevision = null
@@ -199,7 +212,7 @@ function selectionIsDirty() {
 
 
 function refreshProjectedAtoms() {
-  if (!batchSelectionEnabled) {
+  if (!shouldProjectSelectionAtoms(batchSelectionEnabled, selectionModeActive)) {
     projectedAtoms = []
     return
   }
@@ -246,6 +259,23 @@ async function syncViewerTraceStyles() {
     }
   }
 }
+
+
+const requestViewerFrame = callback => requestAnimationFrame(callback)
+const scheduleProjectedAtomsRefresh = createLatestFrameTask(
+  requestViewerFrame,
+  () => {
+    projectedAtoms = []
+  },
+)
+const scheduleViewerTraceStyleSync = createLatestFrameTask(
+  requestViewerFrame,
+  error => {
+    status.textContent = viewerMessages === null
+      ? String(error.message)
+      : text("error.zoom", {detail: error.message})
+  },
+)
 
 
 function updateSelectionControls() {
@@ -331,13 +361,24 @@ function setToolControlsEnabled(enabled) {
 }
 
 
+for (const eventName of SECONDARY_GESTURE_EVENTS) {
+  viewerWrap.addEventListener(eventName, event => {
+    if (!shouldBlockViewerGesture(event)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+  }, {capture: true, passive: false})
+}
+
+
 async function showDraftCamera(nextCamera) {
   draftCamera = normalizeCamera(nextCamera)
   await Plotly.relayout(graph, {
     "scene.camera": cloneCameraForPlotly(draftCamera),
   })
   setDirtyState()
-  requestAnimationFrame(refreshProjectedAtoms)
+  scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
 }
 
 
@@ -363,9 +404,9 @@ async function showDraftAspectRatio(nextAspectRatio) {
     "scene.aspectratio": draftAspectRatio,
     "scene.aspectmode": "manual",
   })
-  await syncViewerTraceStyles()
+  scheduleViewerTraceStyleSync(syncViewerTraceStyles)
   persistViewerSession()
-  requestAnimationFrame(refreshProjectedAtoms)
+  scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
 }
 
 
@@ -495,9 +536,9 @@ async function onRender(event) {
         draftAspectRatio = nextAspectRatio
         setDirtyState()
         if (zoomChanged) {
-          void syncViewerTraceStyles()
+          scheduleViewerTraceStyleSync(syncViewerTraceStyles)
         }
-        requestAnimationFrame(refreshProjectedAtoms)
+        scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
       } catch (error) {
         status.textContent = text("error.camera", {detail: error.message})
         button.disabled = true
@@ -521,7 +562,7 @@ async function onRender(event) {
     setDirtyState()
     setToolControlsEnabled(true)
     updateSelectionControls()
-    requestAnimationFrame(refreshProjectedAtoms)
+    scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
   } catch (error) {
     status.textContent = viewerMessages === null
       ? String(error.message)
@@ -654,7 +695,7 @@ viewerWrap.addEventListener("pointercancel", event => {
 
 
 new ResizeObserver(() => {
-  requestAnimationFrame(refreshProjectedAtoms)
+  scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
 }).observe(graph)
 
 

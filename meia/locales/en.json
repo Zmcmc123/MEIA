@@ -65,6 +65,7 @@
   "file.upload_structure": "Upload Structure File",
   "file.upload_structure_help": "Supports ASE-readable POSCAR/CONTCAR, CIF, XYZ, LAMMPS data, and related formats.",
   "file.import_style": "Import General Style Preset (JSON)",
+  "file.default_style_path_hint": "Defaults to MEIA-main/meia/defaults/default_style.meia.json",
   "file.import_snapshot": "Import Workspace Snapshot (JSON)",
   "file.apply_style": "Apply General Style Preset",
   "file.apply_snapshot": "Import Workspace Snapshot",

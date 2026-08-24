@@ -33,8 +33,12 @@ jobs:
         run: python -m compileall -q app.py meia scripts tests
       - name: Validate public documentation
         run: python scripts/check_public_docs.py
-      - name: Run Python tests
-        run: python -m pytest -W error::FutureWarning -q
+      - name: Run routine Python tests
+        run: python -m pytest -W error::FutureWarning --strict-markers -q -m "not release"
+        env:
+          MPLCONFIGDIR: ${{ runner.temp }}/meia-mpl-cache
+      - name: Run release-integrity Python tests
+        run: python -m pytest -W error::FutureWarning --strict-markers -q -m release
         env:
           MPLCONFIGDIR: ${{ runner.temp }}/meia-mpl-cache
 

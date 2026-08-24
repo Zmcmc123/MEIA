@@ -25,6 +25,45 @@ test("selection capture accepts only a primary pointer gesture, never a wheel", 
 })
 
 
+test("viewer blocks secondary-button gestures but keeps primary input", async () => {
+  const { shouldBlockViewerGesture } = await import("./selection-interactions.mjs")
+
+  for (const event of [
+    {type: "pointerdown", button: 2, buttons: 2},
+    {type: "pointermove", button: -1, buttons: 2},
+    {type: "pointerup", button: 2, buttons: 0},
+    {type: "mousedown", button: 2, buttons: 2},
+    {type: "mousemove", button: -1, buttons: 2},
+    {type: "mouseup", button: 2, buttons: 0},
+    {type: "auxclick", button: 2, buttons: 0},
+    {type: "contextmenu", button: 2, buttons: 0},
+  ]) {
+    assert.equal(shouldBlockViewerGesture(event), true, event.type)
+  }
+
+  for (const event of [
+    {type: "pointerdown", button: 0, buttons: 1},
+    {type: "pointermove", button: -1, buttons: 1},
+    {type: "pointerup", button: 0, buttons: 0},
+    {type: "mousedown", button: 0, buttons: 1},
+    {type: "mousemove", button: -1, buttons: 1},
+    {type: "mouseup", button: 0, buttons: 0},
+    {type: "wheel", button: 0, buttons: 0},
+  ]) {
+    assert.equal(shouldBlockViewerGesture(event), false, event.type)
+  }
+})
+
+
+test("atom screen projection runs only while batch selection is active", async () => {
+  const { shouldProjectSelectionAtoms } = await import("./selection-interactions.mjs")
+
+  assert.equal(shouldProjectSelectionAtoms(true, true), true)
+  assert.equal(shouldProjectSelectionAtoms(true, false), false)
+  assert.equal(shouldProjectSelectionAtoms(false, true), false)
+})
+
+
 test("selection clicks never refresh the camera-interaction clock", async () => {
   const { shouldMarkCameraInteraction } = await import("./selection-interactions.mjs")
 
@@ -75,5 +114,9 @@ test("the viewer wires camera starts and selection clicks in capture phase", asy
   assert.match(
     mainSource,
     /viewerWrap\.addEventListener\("click",[\s\S]{0,180}shouldConsumeSelectionClick\(selectionModeActive, event\)[\s\S]{0,180}event\.stopPropagation\(\)[\s\S]{0,80}\{capture: true\}/u,
+  )
+  assert.match(
+    mainSource,
+    /for \(const eventName of SECONDARY_GESTURE_EVENTS\)[\s\S]{0,300}shouldBlockViewerGesture\(event\)[\s\S]{0,160}event\.preventDefault\(\)[\s\S]{0,100}event\.stopPropagation\(\)[\s\S]{0,120}\{capture: true, passive: false\}/u,
   )
 })

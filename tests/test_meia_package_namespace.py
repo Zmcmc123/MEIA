@@ -11,6 +11,8 @@ import re
 import subprocess
 import sys
 
+import pytest
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -52,6 +54,7 @@ def test_meia_resources_load_from_the_new_package():
     assert I18n(Locale.EN).text("app.title.full") == PRODUCT_FULL_NAME
 
 
+@pytest.mark.release
 def test_meia_batch_module_is_the_only_documented_cli_entrypoint():
     result = subprocess.run(
         [sys.executable, "-m", "meia.batch", "--help"],

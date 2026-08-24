@@ -93,11 +93,17 @@ npm run build
 
 ## 验证
 
-在项目根目录运行：
+日常修改可先运行快速检查：
+
+```bash
+python -m pytest -W error::FutureWarning --strict-markers -q -m "not release"
+```
+
+发布前运行完整检查（包含参考产物再生与仓库一致性检查）：
 
 ```bash
 python -m compileall -q app.py meia scripts tests
-python -m pytest -W error::FutureWarning -q
+python -m pytest -W error::FutureWarning --strict-markers -q
 ```
 
 详细需求和开发进展见 [`docs/SPEC.md`](docs/SPEC.md) 和 [`docs/PROGRESS.md`](docs/PROGRESS.md)。
