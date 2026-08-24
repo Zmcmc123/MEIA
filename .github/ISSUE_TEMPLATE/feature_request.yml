@@ -1,0 +1,31 @@
+name: Feature request / 功能建议
+description: Propose a scoped MEIA improvement / 提出边界清晰的 MEIA 改进建议
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Scientific or illustration problem / 科研或绘图问题
+      description: Describe the workflow problem before proposing an implementation / 先说明工作流问题
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome / 期望结果
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Minimal example or reference / 最小案例或参考资料
+      description: Do not upload confidential or proprietary structures / 不要上传机密或专有构型
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope confirmation / 范围确认
+      options:
+        - label: I understand MEIA does not guarantee physical correctness or replace atomistic modelling software. / 我理解 MEIA 不保证物理正确性，也不替代专业建模软件。
+          required: true

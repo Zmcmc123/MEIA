@@ -1,0 +1,17 @@
+{
+  "name": "meia-atom-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test src/*.test.mjs",
+    "build": "vite build && vite build --config vite.locale.config.mjs"
+  },
+  "dependencies": {
+    "plotly.js-dist-min": "2.35.2",
+    "streamlit-component-lib": "2.0.0"
+  },
+  "devDependencies": {
+    "vite": "6.4.2"
+  }
+}

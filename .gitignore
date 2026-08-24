@@ -1,0 +1,50 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Python packaging output
+/build/
+/dist/
+*.egg-info/
+
+# Local Python environments
+.venv/
+venv/
+env/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Node dependencies and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editors and temporary files
+.idea/
+.vscode/
+.superpowers/
+.worktrees/
+*.swp
+*.swo
+*.log
+
+# Local-only internal project documentation
+docs/agents/
+docs/superpowers/

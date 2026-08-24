@@ -1,0 +1,216 @@
+{
+  "schema_version": 7,
+  "preset_kind": "style",
+  "name": "MEIA default paper style",
+  "created_at": "2026-08-21T00:00:00+08:00",
+  "meia_version": "0.11.0",
+  "view": {
+    "rotation": "-90x",
+    "camera": {
+      "eye": {
+        "x": 0.0,
+        "y": -2.165063509461097,
+        "z": 1.3257190484061337e-16
+      },
+      "up": {
+        "x": 0.0,
+        "y": 6.123233995736766e-17,
+        "z": 1.0
+      },
+      "center": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "projection": {
+        "type": "orthographic"
+      }
+    }
+  },
+  "size_profiles": {
+    "active_mode": "covalent",
+    "covalent": {
+      "global_scale": 0.6,
+      "reference_overrides_angstrom": {},
+      "bond_width_ratio": 0.45
+    },
+    "uniform": {
+      "global_scale": 1.0,
+      "reference_radius_angstrom": 0.35,
+      "reference_overrides_angstrom": {},
+      "bond_width_ratio": 0.45
+    }
+  },
+  "atoms": {
+    "outline_width": 0.5,
+    "element_colors": {
+      "H": "#E6E6E5",
+      "He": "#A6E7E7",
+      "Li": "#BD88DF",
+      "Be": "#AFCF4A",
+      "B": "#E6A2A2",
+      "C": "#3F4F6A",
+      "N": "#6273D0",
+      "O": "#E5A6A6",
+      "F": "#97C473",
+      "Ne": "#A5CDDC",
+      "Na": "#A778D1",
+      "Mg": "#92CF4A",
+      "Al": "#B4A4A4",
+      "Si": "#5386C6",
+      "P": "#CF8D4A",
+      "S": "#D5D561",
+      "Cl": "#5AC95A",
+      "Ar": "#8CBFCA",
+      "K": "#956BBA",
+      "Ca": "#9ECC91",
+      "Sc": "#C7C7C7",
+      "Ti": "#B3B5B9",
+      "V": "#A4A4A7",
+      "Cr": "#939CB8",
+      "Mn": "#9E8AB7",
+      "Fe": "#C17F64",
+      "Co": "#D5939E",
+      "Ni": "#74B974",
+      "Cu": "#B38C63",
+      "Zn": "#8C8EA9",
+      "Ga": "#B59696",
+      "Ge": "#7E9595",
+      "As": "#B28CCA",
+      "Se": "#CF9E4A",
+      "Br": "#A95252",
+      "Kr": "#7AADBB",
+      "Rb": "#8357AC",
+      "Sr": "#4ACF4A",
+      "Y": "#92E2E2",
+      "Zr": "#97CACA",
+      "Nb": "#87B4B8",
+      "Mo": "#76A9A9",
+      "Tc": "#5FA2A2",
+      "Ru": "#4C9D9D",
+      "Rh": "#3695A2",
+      "Pd": "#2B89A2",
+      "Ag": "#B4B4B4",
+      "Cd": "#E1C690",
+      "In": "#A28887",
+      "Sn": "#7C8D8D",
+      "Sb": "#9E7EAA",
+      "Te": "#C88A35",
+      "I": "#A92DA9",
+      "Xe": "#699DA8",
+      "Cs": "#7441A0",
+      "Ba": "#34C334",
+      "La": "#81C1DD",
+      "Ce": "#E7E7A6",
+      "Pr": "#BBE7A6",
+      "Nd": "#A6E7A6",
+      "Pm": "#9AE4B7",
+      "Sm": "#90E1B9",
+      "Eu": "#79DBB9",
+      "Gd": "#6CD8B7",
+      "Tb": "#61D5B6",
+      "Dy": "#59D3B4",
+      "Ho": "#4ACF9B",
+      "Er": "#3DCC86",
+      "Tm": "#35C86E",
+      "Yb": "#33BE5C",
+      "Lu": "#30B54C",
+      "Hf": "#6FB5D9",
+      "Ta": "#6FA4D9",
+      "W": "#5897BC",
+      "Re": "#4F8CAD",
+      "Os": "#4E7DA1",
+      "Ir": "#41729B",
+      "Pt": "#BCBCCA",
+      "Au": "#D3BA5B",
+      "Hg": "#AEAEBF",
+      "Tl": "#A2736F",
+      "Pb": "#72747A",
+      "Bi": "#9D73A9",
+      "Po": "#B57730",
+      "At": "#896D65",
+      "Rn": "#648F9D",
+      "Fr": "#712999",
+      "Ra": "#2A9E2A",
+      "Ac": "#81A7D9",
+      "Th": "#4AABCF",
+      "Pa": "#4A9ECF",
+      "U": "#4A94CF",
+      "Np": "#4A8DCF",
+      "Pu": "#4A82CF",
+      "Am": "#7479D0",
+      "Cm": "#8979C7",
+      "Bk": "#9472C6",
+      "Cf": "#9E66B9",
+      "Es": "#A955BC",
+      "Fm": "#B04CB5",
+      "Md": "#B53CAC",
+      "No": "#BA3D94",
+      "Lr": "#C2347D",
+      "Rf": "#C53473",
+      "Db": "#C7356C",
+      "Sg": "#CA3766",
+      "Bh": "#CB3A5F",
+      "Hs": "#CC3D5A",
+      "Mt": "#CC4057",
+      "Ds": "#BCBCCA",
+      "Rg": "#D3BA5B",
+      "Cn": "#AEAEBF",
+      "Nh": "#A2736F",
+      "Fl": "#72747A",
+      "Mc": "#9D73A9",
+      "Lv": "#B57730",
+      "Ts": "#896D65",
+      "Og": "#648F9D"
+    }
+  },
+  "bonds": {
+    "draw_bonds": true,
+    "style": {
+      "stroke_width": 0.25,
+      "stroke_color": "#231815"
+    },
+    "pair_rule_defaults": {
+      "bond_cutoff": 1.0,
+      "long_distance_threshold_angstrom": 2.0,
+      "pair_distance_multipliers": [
+        {
+          "elements": [
+            "H",
+            "O"
+          ],
+          "multiplier": 1.2
+        }
+      ]
+    },
+    "hydrogen_bonds": {
+      "draw": true,
+      "max_hydrogen_oxygen_distance_angstrom": 2.5,
+      "min_angle_degrees": 120.0
+    },
+    "pair_rules": []
+  },
+  "cell_periodic": {
+    "show_unit_cell": 2,
+    "unwrap_bonded_groups": true,
+    "ranges": {
+      "a": {
+        "start": 0,
+        "end": 1
+      },
+      "b": {
+        "start": 0,
+        "end": 1
+      },
+      "c": {
+        "start": 0,
+        "end": 1
+      }
+    }
+  },
+  "export": {
+    "format": "svg",
+    "dpi": 600,
+    "transparent": true
+  }
+}

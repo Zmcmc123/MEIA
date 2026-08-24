@@ -1,0 +1,16 @@
+name: Commercial licensing contact / 商业授权联系
+description: Ask the owner to provide a private contact channel / 请求所有者提供私下联系渠道
+title: "[Commercial licensing] Private contact requested"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. Request a private contact channel only; do not include confidential business terms, structure files, personal contact details, or other sensitive information.
+        本 Issue 公开可见。请只请求私下联系渠道，不要填写保密商业条款、构型文件、个人联系方式或其他敏感信息。
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Public issue acknowledgement / 公开 Issue 确认
+      options:
+        - label: I have not included confidential or sensitive information and request a private contact channel for MEIA commercial licensing. / 我没有填写保密或敏感信息，并请求获得 MEIA 商业授权的私下联系渠道。
+          required: true

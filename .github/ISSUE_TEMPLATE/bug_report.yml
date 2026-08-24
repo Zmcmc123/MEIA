@@ -1,0 +1,51 @@
+name: Bug report / 问题报告
+description: Report a reproducible MEIA problem / 报告可复现的 MEIA 问题
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not upload confidential structures or security vulnerabilities. Security reports belong in the private channel described in SECURITY.md.
+        请勿上传机密构型或公开披露安全漏洞；安全问题请按 SECURITY.md 私下报告。
+  - type: input
+    id: version
+    attributes:
+      label: MEIA version or commit / MEIA 版本或提交
+      placeholder: 0.11.0 or commit hash
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: Operating system, Python version, and browser / 操作系统、Python 版本和浏览器
+    validations:
+      required: true
+  - type: input
+    id: format
+    attributes:
+      label: Input format / 输入格式
+      placeholder: CONTCAR, CIF, XYZ, LAMMPS data, or no input file
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      description: List the smallest sequence that reproduces the problem / 给出最短可复现步骤
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and error output / 实际行为与错误信息
+    validations:
+      required: true

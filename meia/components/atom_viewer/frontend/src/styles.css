@@ -1,0 +1,239 @@
+:root {
+  color: #31333f;
+  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: transparent;
+}
+
+.viewer-shell {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.view-tools {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e3e5e8;
+  border-radius: 0.55rem;
+  background: rgba(250, 250, 250, 0.92);
+}
+
+.angle-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+#angle-step {
+  width: 5.2rem;
+  min-height: 2.15rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #b9bdc5;
+  border-radius: 0.4rem;
+  color: inherit;
+  background: #ffffff;
+  font: inherit;
+}
+
+.orbit-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 2.25rem);
+  grid-template-rows: repeat(2, 1.9rem);
+  gap: 0.2rem;
+}
+
+.orbit-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.orbit-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.orbit-down {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.orbit-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.axis-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tool-button {
+  min-height: 1.9rem;
+  border: 1px solid #b9bdc5;
+  border-radius: 0.4rem;
+  color: #31333f;
+  background: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tool-button:hover:not(:disabled) {
+  border-color: #ff4b4b;
+  color: #b42323;
+  background: #fff7f7;
+}
+
+.tool-button:disabled,
+#angle-step:disabled {
+  color: #9297a1;
+  background: #f0f2f6;
+  cursor: default;
+}
+
+.axis-button {
+  min-width: 5.4rem;
+  padding: 0.35rem 0.65rem;
+  font-weight: 600;
+}
+
+.axis-button span {
+  font-weight: 400;
+}
+
+#viewer {
+  width: 100%;
+  height: 450px;
+  min-height: 320px;
+}
+
+#viewer-wrap {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  min-height: 320px;
+}
+
+.selection-tools {
+  display: flex;
+  min-height: 2.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e3e5e8;
+  border-radius: 0.55rem;
+  background: rgba(250, 250, 250, 0.92);
+}
+
+.selection-mode-button[aria-pressed="true"] {
+  border-color: #f9a825;
+  color: #7a4d00;
+  background: #fff8df;
+}
+
+#selection-hint {
+  flex: 1 1 15rem;
+  color: #5f6470;
+  font-size: 0.88rem;
+}
+
+#selection-count {
+  min-width: 7.2rem;
+  color: #31333f;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.selection-action-button {
+  padding: 0.35rem 0.65rem;
+}
+
+#confirm-selection {
+  min-height: 2.15rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid #f9a825;
+  border-radius: 0.45rem;
+  color: #ffffff;
+  background: #f9a825;
+  font: inherit;
+  cursor: pointer;
+}
+
+#confirm-selection:disabled {
+  border-color: #d5d7dc;
+  color: #6b6f7b;
+  background: #f0f2f6;
+  cursor: default;
+}
+
+#selection-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+#selection-overlay.active {
+  pointer-events: none;
+}
+
+#viewer-wrap.selection-active {
+  cursor: crosshair;
+}
+
+#selection-box {
+  display: none;
+  fill: rgba(255, 213, 79, 0.14);
+  stroke: #f9a825;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.viewer-controls {
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+#apply-camera {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid #ff4b4b;
+  border-radius: 0.5rem;
+  color: #ffffff;
+  background: #ff4b4b;
+  font: inherit;
+  cursor: pointer;
+}
+
+#apply-camera:disabled {
+  border-color: #d5d7dc;
+  color: #6b6f7b;
+  background: #f0f2f6;
+  cursor: default;
+}
+
+#status {
+  color: #b54747;
+  font-size: 0.9rem;
+}
