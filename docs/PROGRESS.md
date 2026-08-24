@@ -8,7 +8,7 @@
 | 能力           | 当前实现                                                                                             | 主要位置                                                                          |
 | ------------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
 | 双语主界面        | 支持中文与英文一键切换；中文标题保持“⚛ 原子构型可视化”，英文标题为“MEIA - Molecular and Extended-system Illustration Assistant” | `app.py`, `meia/i18n.py`, `meia/locales/`                                     |
-| 语言优先级        | 手动选择高于已保存偏好，已保存偏好高于浏览器语言；手动选择通过 `meia.locale` 持久化                                                | `meia/locale_state.py`, `meia/components/locale_preference/`                  |
+| 语言优先级        | 手动选择高于已保存 Cookie，已保存 Cookie 高于浏览器请求语言；手动选择通过 `meia.locale` 持久化，首次加载不依赖自定义静态组件 | `app.py`, `meia/locale_state.py`                                              |
 | 3D 交互双语      | 视角、轴向、选择、错误、无障碍标签和 Plotly 图例全部由词典提供；英文成键术语统一为 `Detected Bonds` / `Show Detected Bonds`           | `meia/viewer.py`, `meia/components/atom_viewer/`                              |
 | 切换状态保留       | 语言切换前的结构、侧栏未提交草稿、3D 相机方向、缩放、角度步长、选择模式和临时选区保留；结构或视图修订变化时自动隔离旧状态                                   | `app.py`, `meia/components/atom_viewer/frontend/src/viewer-session-state.mjs` |
 | 可追溯双语错误      | 预设、构型读取、原子尺寸/颜色、键范围/描边、氢键阈值、周期范围/上限、选择和相机均携带稳定翻译键与参数；未知第三方错误保留原始详情和用户路径                          | `meia/i18n.py`, `meia/presets.py`, `meia/io.py`, visual-domain modules        |

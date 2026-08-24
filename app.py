@@ -12,19 +12,20 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import streamlit as st
+import streamlit.components.v1 as components
 from ase import Atoms
 
 from meia import __version__
 from meia.atom_styles import replace_selected_indices
 from meia.brand import (
     DEFAULT_EXPORT_STEM,
+    LOCALE_STORAGE_KEY,
     PRODUCT_FULL_NAME,
     PRODUCT_NAME,
     STYLE_JSON_SUFFIX,
     WORKSPACE_JSON_SUFFIX,
 )
 from meia.bond_rules import normalize_element_pair
-from meia.components.locale_preference import render_locale_preference
 from meia.export import export_figure
 from meia.i18n import I18n, Locale, LocalizedError
 from meia.io import StructureReadError, is_supported_structure_filename, read_structure
@@ -32,8 +33,9 @@ from meia.locale_state import (
     APP_LOCALE_KEY,
     APP_LOCALE_SOURCE_KEY,
     APP_LOCALE_WIDGET_KEY,
-    accept_locale_preference,
+    initialize_locale,
     load_locale,
+    locale_cookie_markup,
     set_manual_locale,
 )
 from meia.presets import (
@@ -125,25 +127,16 @@ LOCALE_DRAFT_PREFIXES = (
 LOCALE_DRAFT_KEYS = ("meia_preset_name",)
 
 
-def _initialize_i18n() -> I18n | None:
-    """从本地偏好或浏览器语言初始化一次独立的界面语言状态。"""
-    current = load_locale(st.session_state)
-    persist_locale = (
-        current
-        if current is not None
-        and st.session_state.get(APP_LOCALE_SOURCE_KEY) == "manual"
-        else None
+def _initialize_i18n() -> I18n:
+    """从 Cookie 或请求语言初始化与可视化状态隔离的界面语言。"""
+    current = initialize_locale(
+        st.session_state,
+        stored_locale=st.context.cookies.get(LOCALE_STORAGE_KEY),
+        accept_language=st.context.headers.get("Accept-Language"),
     )
-    preference = render_locale_preference(
-        persist_locale=persist_locale,
-        key="meia_locale_preference_component",
-    )
-    if preference is None:
-        return None if current is None else I18n(current)
-    accepted = accept_locale_preference(st.session_state, preference)
-    if current is None or accepted is not current:
-        st.rerun()
-    return I18n(accepted)
+    if st.session_state.get(APP_LOCALE_SOURCE_KEY) == "manual":
+        components.html(locale_cookie_markup(current), height=0, width=0)
+    return I18n(current)
 
 
 def _render_locale_selector(i18n: I18n) -> I18n:
@@ -865,10 +858,6 @@ def main() -> None:
     )
     st.set_page_config(page_title=page_title, page_icon="⚛", layout="wide")
     i18n = _initialize_i18n()
-    if i18n is None:
-        st.caption("MEIA")
-        st.stop()
-        return
     i18n = _render_locale_selector(i18n)
     _consume_reset_widget_reinitialize(st.session_state)
     pending_selection = st.session_state.pop(

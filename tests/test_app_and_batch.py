@@ -240,13 +240,16 @@ def _assert_atoms_unchanged(atoms, snapshot):
     assert atoms.get_chemical_symbols() == symbols
 
 
-def test_first_run_waits_for_invisible_locale_preference():
+def test_first_run_uses_chinese_fallback_without_waiting_for_browser_component():
     app_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "app.py")
     app = AppTest.from_file(app_path).run(timeout=30)
 
     assert not app.exception
-    assert [caption.value for caption in app.caption] == ["MEIA"]
-    assert not app.expander
+    assert "⚛ 原子构型可视化" in [title.value for title in app.title]
+    assert len(app.radio) == 1
+    assert app.radio[0].value == Locale.ZH_CN
+    assert app.expander
+    assert not app.get("component_instance")
 
 
 def test_language_switch_preserves_visual_workspace_and_drafts():
