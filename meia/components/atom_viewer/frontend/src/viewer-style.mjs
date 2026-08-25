@@ -105,3 +105,111 @@ export function plotlyAtomicUpdateForSingleTrace(update, camera, aspectRatio) {
     },
   }
 }
+
+
+function traceArray(trace, property, expectedLength) {
+  const value = trace?.[property]
+  if (!Array.isArray(value) || value.length !== expectedLength) {
+    throw new Error(`atom trace ${property} must match its source identities`)
+  }
+  return value
+}
+
+
+export function sparseSelectionTraceUpdate(
+  atomTrace,
+  selectedIndices,
+  zoomScale,
+) {
+  if (atomTrace?.meta?.meia_role !== "atoms") {
+    throw new Error("sparse selection requires the atom trace")
+  }
+  const scale = finitePositive(zoomScale, "zoom scale")
+  const sourceIndices = atomTrace?.meta?.meia_source_atom_indices
+  const baseMarkerSizes = atomTrace?.meta?.meia_base_marker_sizes
+  if (
+    !Array.isArray(sourceIndices)
+    || !Array.isArray(baseMarkerSizes)
+    || sourceIndices.length !== baseMarkerSizes.length
+    || sourceIndices.some(index => !Number.isInteger(index) || index < 0)
+  ) {
+    throw new Error("atom trace is missing source atom identities")
+  }
+  const selected = new Set(selectedIndices)
+  if ([...selected].some(index => !Number.isInteger(index) || index < 0)) {
+    throw new Error("selected atom index must be a non-negative integer")
+  }
+  const x = traceArray(atomTrace, "x", sourceIndices.length)
+  const y = traceArray(atomTrace, "y", sourceIndices.length)
+  const z = traceArray(atomTrace, "z", sourceIndices.length)
+  const customdata = traceArray(atomTrace, "customdata", sourceIndices.length)
+  const update = {
+    x: [],
+    y: [],
+    z: [],
+    customdata: [],
+    "marker.size": [],
+    "marker.color": [],
+  }
+  for (let index = 0; index < sourceIndices.length; index += 1) {
+    if (!selected.has(sourceIndices[index])) {
+      continue
+    }
+    update.x.push(x[index])
+    update.y.push(y[index])
+    update.z.push(z[index])
+    update.customdata.push(customdata[index])
+    update["marker.size"].push(
+      scaleMarkerSize(baseMarkerSizes[index], scale, true),
+    )
+    update["marker.color"].push(SELECTED_COLOR)
+  }
+  return update
+}
+
+
+export function plotlyCombinedTraceUpdate(
+  traces,
+  zoomScale,
+  camera,
+  aspectRatio,
+  selectedIndices = [],
+) {
+  if (!Array.isArray(traces)) {
+    throw new Error("Plotly traces must be an array")
+  }
+  const atomTrace = traces.find(trace => trace?.meta?.meia_role === "atoms")
+  const traceIndices = []
+  const updates = []
+  for (let index = 0; index < traces.length; index += 1) {
+    const trace = traces[index]
+    const update = trace?.meta?.meia_role === "selection"
+      ? sparseSelectionTraceUpdate(
+        atomTrace,
+        selectedIndices,
+        zoomScale,
+      )
+      : viewerTraceStyleAtZoom(trace, zoomScale, selectedIndices)
+    if (update === null) {
+      continue
+    }
+    traceIndices.push(index)
+    updates.push(update)
+  }
+  const properties = new Set(updates.flatMap(update => Object.keys(update)))
+  const dataUpdate = Object.fromEntries(
+    [...properties].map(property => [
+      property,
+      updates.map(update => update[property]),
+    ]),
+  )
+  return {
+    traceIndices,
+    dataUpdate,
+    layoutUpdate: {
+      "scene.camera": normalizeCamera(camera),
+      "scene.aspectratio": normalizeAspectRatio(aspectRatio),
+      "scene.aspectmode": "manual",
+    },
+  }
+}

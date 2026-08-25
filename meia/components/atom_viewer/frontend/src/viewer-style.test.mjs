@@ -171,3 +171,74 @@ test("trace style updates preserve the current camera and scene span", async () 
     },
   )
 })
+
+
+test("one zoom update carries every trace property in one Plotly call", async () => {
+  const { plotlyCombinedTraceUpdate } = await loadViewerStyle()
+  const camera = {
+    eye: {x: 0.5, y: 0.5, z: 0.5},
+    up: {x: 0, y: 0, z: 1},
+    center: {x: 0, y: 0, z: 0},
+    projection: {type: "orthographic"},
+  }
+  const aspectRatio = {x: 2, y: 2, z: 2}
+  const result = plotlyCombinedTraceUpdate([
+    {meta: {meia_role: "atoms", meia_base_marker_sizes: [6, 8]}},
+    {meta: {meia_role: "bond_outlines", meia_base_line_width: 5}},
+    {meta: {meia_role: "bonds", meia_base_line_width: 4}},
+    {meta: {meia_role: "hydrogen_bonds", meia_base_line_width: 3}},
+  ], 1.5, camera, aspectRatio)
+
+  assert.deepEqual(result.traceIndices, [0, 1, 2, 3])
+  assert.deepEqual(result.dataUpdate["marker.size"][0], [9, 12])
+  assert.deepEqual(
+    result.dataUpdate["line.width"],
+    [undefined, 7.5, 6, 4.5],
+  )
+  assert.deepEqual(result.layoutUpdate, {
+    "scene.camera": camera,
+    "scene.aspectratio": aspectRatio,
+    "scene.aspectmode": "manual",
+  })
+})
+
+
+test("sparse selection contains only selected source replicas", async () => {
+  const { sparseSelectionTraceUpdate } = await loadViewerStyle()
+  const atomTrace = {
+    x: [0, 1, 2, 3],
+    y: [4, 5, 6, 7],
+    z: [8, 9, 10, 11],
+    customdata: [
+      [0, "H"],
+      [1, "O"],
+      [0, "H"],
+      [1, "O"],
+    ],
+    meta: {
+      meia_role: "atoms",
+      meia_base_marker_sizes: [6, 8, 6, 8],
+      meia_source_atom_indices: [0, 1, 0, 1],
+    },
+  }
+
+  assert.deepEqual(sparseSelectionTraceUpdate(atomTrace, [0], 1.5), {
+    x: [0, 2],
+    y: [4, 6],
+    z: [8, 10],
+    customdata: [[0, "H"], [0, "H"]],
+    "marker.size": [9, 9],
+    "marker.color": [
+      "rgba(255,213,79,0.55)",
+      "rgba(255,213,79,0.55)",
+    ],
+  })
+  assert.deepEqual(sparseSelectionTraceUpdate(atomTrace, [], 1.5), {
+    x: [],
+    y: [],
+    z: [],
+    customdata: [],
+    "marker.size": [],
+    "marker.color": [],
+  })
+})

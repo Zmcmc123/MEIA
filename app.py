@@ -981,6 +981,7 @@ def main() -> None:
         rotation_matrix=applied_view.rotation_matrix,
     )
     output_context = replace(render_context, config=output_config)
+    complexity = measure_display_complexity(len(atoms), output_context)
     st.subheader(i18n.text("viewer.title"))
     st.caption(i18n.text("viewer.interaction_caption"))
     figure_3d = create_3d_figure(
@@ -1007,13 +1008,13 @@ def main() -> None:
         selected_atom_index=None,
         selected_atom_indices=selected_indices,
         batch_selection_enabled=True,
+        extreme_3d_interaction=complexity.extreme_3d_interaction,
         style_dirty=False,
         key="meia_3d_viewer",
     )
     _apply_viewer_event(raw_event, active, visual_state, applied_view, i18n)
 
     st.subheader(i18n.text("preview.title"))
-    complexity = measure_display_complexity(len(atoms), output_context)
     current_preview_key = PreviewKey.build(
         active.structure_id,
         visual_state,

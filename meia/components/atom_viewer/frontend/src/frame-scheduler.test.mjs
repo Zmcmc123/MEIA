@@ -80,4 +80,25 @@ test("viewer coalesces projection and trace-style work by animation frame", asyn
     mainSource,
     /scheduleViewerTraceStyleSync\(syncViewerTraceStyles\)/u,
   )
+  assert.match(
+    mainSource,
+    /const combinedUpdate = plotlyCombinedTraceUpdate\([\s\S]{0,360}await Plotly\.update\([\s\S]{0,220}combinedUpdate\.traceIndices/u,
+  )
+  const syncSource = mainSource.match(
+    /async function syncViewerTraceStyles\(\) \{[\s\S]*?\n\}/u,
+  )?.[0] ?? ""
+  assert.doesNotMatch(syncSource, /for \(/u)
+  assert.match(mainSource, /createIdleTask\(\{[\s\S]{0,80}delayMs: 80/u)
+  assert.match(mainSource, /new SelectionSpatialIndex\(projectedAtoms\)/u)
+})
+
+
+test("extreme viewer input temporarily hides expensive layers and restores them", async () => {
+  const mainSource = await readFile(new URL("./main.mjs", import.meta.url), "utf8")
+
+  assert.match(mainSource, /args\.extreme_3d_interaction/u)
+  assert.match(mainSource, /meia_role === "bond_outlines"/u)
+  assert.match(mainSource, /meia_role === "hydrogen_bonds"/u)
+  assert.match(mainSource, /delayMs: 120/u)
+  assert.match(mainSource, /restoreInteractionLayers/u)
 })

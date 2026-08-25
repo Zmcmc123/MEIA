@@ -1039,6 +1039,7 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
     def capture_atom_viewer(**kwargs):
         captured["viewer_locale"] = kwargs.get("locale")
         captured["viewer_messages"] = kwargs.get("messages")
+        captured["viewer_extreme"] = kwargs.get("extreme_3d_interaction")
         return None
 
     def capture_export_downloads(_container, artifact, current_key, *_args):
@@ -1107,6 +1108,7 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
     assert captured["figure_3d_messages"]["bonds"] == "化学键"
     assert captured["viewer_locale"] is Locale.ZH_CN
     assert captured["viewer_messages"]["camera.apply"] == "应用当前视角"
+    assert captured["viewer_extreme"] is False
     assert output_context.config is captured["output_config"]
     assert output_context.config is not base_context.config
     assert np.array_equal(
@@ -2484,14 +2486,12 @@ def test_create_3d_figure_shows_draft_strength_and_multiple_selected_atoms():
         "#000000",
     ]
     selected_trace = next(trace for trace in fig.data if trace.name == "批量选择")
-    assert len(selected_trace.x) == 3
+    assert len(selected_trace.x) == 2
     assert selected_trace.meta["meia_role"] == "selection"
-    assert list(selected_trace.marker.size[:2]) == list(atom_trace.marker.size[:2])
-    assert selected_trace.marker.size[2] == 0
+    assert list(selected_trace.marker.size) == list(atom_trace.marker.size[:2])
     assert [list(row[:2]) for row in selected_trace.customdata] == [
         [0, "H"],
         [1, "O"],
-        [2, "C"],
     ]
     assert all(
         [list(row[2]), list(row[3])] == [[0, 0, 0], [0, 0, 0]]
@@ -2500,7 +2500,6 @@ def test_create_3d_figure_shows_draft_strength_and_multiple_selected_atoms():
     assert list(selected_trace.marker.color) == [
         "rgba(255,213,79,0.55)",
         "rgba(255,213,79,0.55)",
-        "rgba(0,0,0,0)",
     ]
 
     bond_colors = {
@@ -2577,11 +2576,9 @@ def test_create_3d_figure_renders_replicas_and_selects_by_source_identity():
         trace for trace in fig.data
         if trace.meta["meia_role"] == "selection"
     )
-    selected_rows = [
-        index for index, size in enumerate(selection.marker.size) if size > 0
-    ]
-    assert selected_rows == [0, 2]
-    assert selection.meta["meia_source_atom_indices"] == [0, 1, 0, 1]
+    assert list(selection.x) == pytest.approx([0.0, 4.0])
+    assert all(size > 0 for size in selection.marker.size)
+    assert selection.meta["meia_source_atom_indices"] == [0, 0]
 
     bond_fills = {
         trace.line.color: trace

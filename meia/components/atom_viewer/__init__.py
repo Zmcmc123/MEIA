@@ -45,6 +45,7 @@ def render_atom_viewer(
     style_dirty: bool = False,
     selected_atom_indices: Sequence[int] | None = None,
     batch_selection_enabled: bool = False,
+    extreme_3d_interaction: bool = False,
 ) -> Any:
     """渲染 3D 组件并返回其最新用户确认事件。"""
     resolved_locale = Locale(locale).value
@@ -53,6 +54,8 @@ def render_atom_viewer(
         for message_key, text in messages.items()
     ):
         raise TypeError("messages must be a non-empty string mapping")
+    if not isinstance(extreme_3d_interaction, bool):
+        raise TypeError("extreme_3d_interaction must be a boolean")
     # Components v1 使用 stdlib json.dumps；Plotly 的 to_plotly_json 可能
     # 保留 NumPy 数组，因此先通过 Plotly 自身编码器跨越 JSON 边界。
     figure_payload = json.loads(figure.to_json())
@@ -74,6 +77,7 @@ def render_atom_viewer(
         selected_atom_index=selected_atom_index,
         selected_atom_indices=list(selected_atom_indices or ()),
         batch_selection_enabled=bool(batch_selection_enabled),
+        extreme_3d_interaction=extreme_3d_interaction,
         style_dirty=bool(style_dirty),
         locale=resolved_locale,
         messages=dict(messages),

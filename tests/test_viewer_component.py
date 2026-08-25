@@ -58,6 +58,7 @@ def test_component_adapter_crosses_plotly_json_boundary(monkeypatch):
         selected_atom_index=None,
         selected_atom_indices=(0, 2),
         batch_selection_enabled=True,
+        extreme_3d_interaction=True,
         locale=Locale.EN,
         messages=I18n(Locale.EN).bundle("viewer"),
         key="viewer",
@@ -81,6 +82,7 @@ def test_component_adapter_crosses_plotly_json_boundary(monkeypatch):
         selected_atom_index=None,
         selected_atom_indices=[0, 2],
         batch_selection_enabled=True,
+        extreme_3d_interaction=True,
         locale="en",
         messages=I18n(Locale.EN).bundle("viewer"),
         style_dirty=True,
@@ -113,11 +115,34 @@ def test_component_adapter_keeps_legacy_callers_working_without_axis_cameras(
     assert component.call_args.kwargs["style_dirty"] is False
     assert component.call_args.kwargs["selected_atom_indices"] == []
     assert component.call_args.kwargs["batch_selection_enabled"] is False
+    assert component.call_args.kwargs["extreme_3d_interaction"] is False
     assert set(axis_cameras) == {"a", "b", "c"}
     assert axis_cameras["a"]["eye"]["x"] > 0
     assert axis_cameras["b"]["eye"]["y"] > 0
     assert axis_cameras["c"]["eye"]["z"] > 0
     assert axis_cameras["c"]["up"] == {"x": 0.0, "y": 1.0, "z": 0.0}
+
+
+def test_component_adapter_rejects_non_boolean_extreme_interaction_flag(
+    monkeypatch,
+):
+    component = Mock(return_value=None)
+    monkeypatch.setattr("meia.components.atom_viewer._component", component)
+    figure = Mock()
+    figure.to_json.return_value = '{"data": [], "layout": {}}'
+
+    with np.testing.assert_raises(TypeError):
+        render_atom_viewer(
+            figure=figure,
+            structure_id="structure",
+            view_revision="revision",
+            applied_camera=CameraState(),
+            selected_atom_index=None,
+            locale=Locale.EN,
+            messages=I18n(Locale.EN).bundle("viewer"),
+            key="viewer",
+            extreme_3d_interaction="yes",
+        )
 
 
 def test_component_adapter_forwards_locale_and_viewer_messages(monkeypatch):

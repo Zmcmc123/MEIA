@@ -15,6 +15,7 @@ import {
   orbitCamera,
 } from "./camera-controls.mjs"
 import { createLatestFrameTask } from "./frame-scheduler.mjs"
+import { createIdleTask } from "./idle-scheduler.mjs"
 import {
   isPrimarySelectionPointer,
   shouldBlockViewerGesture,
@@ -24,19 +25,19 @@ import {
 } from "./selection-interactions.mjs"
 import {
   addAtomIndices,
-  atomsInsideRectangle,
   atomSelectionFromPoint,
   makeAtomSelectionBatchEvent,
   makeAtomSelectionEvent,
-  nearestAtomAtPoint,
   normalizeAtomIndices,
   projectAtomScreenPositions,
   toggleAtomIndex,
 } from "./selection-state.mjs"
 import {
-  plotlyAtomicUpdateForSingleTrace,
-  viewerTraceStyleAtZoom,
+  plotlyCombinedTraceUpdate,
+  plotlyUpdateForSingleTrace,
+  sparseSelectionTraceUpdate,
 } from "./viewer-style.mjs"
+import { SelectionSpatialIndex } from "./selection-spatial-index.mjs"
 import {
   aspectRatiosEqual,
   aspectRatioZoomScale,
@@ -106,10 +107,13 @@ let selectionModeActive = false
 let pythonSelectedIndices = []
 let draftSelectedIndices = []
 let projectedAtoms = []
+let selectionSpatialIndex = null
 let selectionGesture = null
 let waitingForSelection = false
 let viewerLocale = null
 let viewerMessages = null
+let extreme3dInteraction = false
+let interactionLayerVisibility = null
 
 
 function browserSessionStorage() {
@@ -214,6 +218,7 @@ function selectionIsDirty() {
 function refreshProjectedAtoms() {
   if (!shouldProjectSelectionAtoms(batchSelectionEnabled, selectionModeActive)) {
     projectedAtoms = []
+    selectionSpatialIndex = null
     return
   }
   try {
@@ -221,10 +226,12 @@ function refreshProjectedAtoms() {
       graph,
       selectionOverlay.getBoundingClientRect(),
     )
+    selectionSpatialIndex = new SelectionSpatialIndex(projectedAtoms)
   } catch (_error) {
     // Plotly 在 react 后的首帧才生成 cameraParams；下一次动画帧或
     // 用户开始选择时会再次投影，不向用户显示短暂的初始化错误。
     projectedAtoms = []
+    selectionSpatialIndex = null
   }
 }
 
@@ -238,26 +245,53 @@ async function syncViewerTraceStyles() {
     return
   }
   const zoomScale = aspectRatioZoomScale(baseAspectRatio, draftAspectRatio)
-  for (let index = 0; index < graph.data.length; index += 1) {
-    const update = viewerTraceStyleAtZoom(
-      graph.data[index],
-      zoomScale,
-      draftSelectedIndices,
-    )
-    if (update !== null) {
-      const atomicUpdate = plotlyAtomicUpdateForSingleTrace(
-        update,
-        draftCamera,
-        draftAspectRatio,
-      )
-      await Plotly.update(
-        graph,
-        atomicUpdate.dataUpdate,
-        atomicUpdate.layoutUpdate,
-        [index],
-      )
-    }
+  const combinedUpdate = plotlyCombinedTraceUpdate(
+    graph.data,
+    zoomScale,
+    draftCamera,
+    draftAspectRatio,
+    draftSelectedIndices,
+  )
+  if (combinedUpdate.traceIndices.length === 0) {
+    return
   }
+  await Plotly.update(
+    graph,
+    combinedUpdate.dataUpdate,
+    combinedUpdate.layoutUpdate,
+    combinedUpdate.traceIndices,
+  )
+}
+
+
+async function syncSelectionTrace() {
+  if (
+    !Array.isArray(graph.data)
+    || baseAspectRatio === null
+    || draftAspectRatio === null
+  ) {
+    return
+  }
+  const atomTrace = graph.data.find(
+    trace => trace?.meta?.meia_role === "atoms",
+  )
+  const selectionIndex = graph.data.findIndex(
+    trace => trace?.meta?.meia_role === "selection",
+  )
+  if (atomTrace === undefined || selectionIndex < 0) {
+    return
+  }
+  const update = sparseSelectionTraceUpdate(
+    atomTrace,
+    draftSelectedIndices,
+    aspectRatioZoomScale(baseAspectRatio, draftAspectRatio),
+  )
+  await Plotly.update(
+    graph,
+    plotlyUpdateForSingleTrace(update),
+    {},
+    [selectionIndex],
+  )
 }
 
 
@@ -276,6 +310,74 @@ const scheduleViewerTraceStyleSync = createLatestFrameTask(
       : text("error.zoom", {detail: error.message})
   },
 )
+const scheduleFinalViewerTraceStyleSync = createIdleTask({
+  delayMs: 80,
+  onError: error => {
+    status.textContent = viewerMessages === null
+      ? String(error.message)
+      : text("error.zoom", {detail: error.message})
+  },
+})
+const scheduleInteractionLayerRestore = createIdleTask({
+  delayMs: 120,
+  onError: error => {
+    status.textContent = viewerMessages === null
+      ? String(error.message)
+      : text("error.zoom", {detail: error.message})
+  },
+})
+
+
+function scheduleTraceStyleSync() {
+  scheduleViewerTraceStyleSync(syncViewerTraceStyles)
+  scheduleFinalViewerTraceStyleSync(syncViewerTraceStyles)
+}
+
+
+async function hideExpensiveInteractionLayers() {
+  if (
+    !extreme3dInteraction
+    || interactionLayerVisibility !== null
+    || !Array.isArray(graph.data)
+  ) {
+    return
+  }
+  const traceIndices = []
+  const visible = []
+  for (let index = 0; index < graph.data.length; index += 1) {
+    const meia_role = graph.data[index]?.meta?.meia_role
+    if (meia_role === "bond_outlines" || meia_role === "hydrogen_bonds") {
+      traceIndices.push(index)
+      visible.push(graph.data[index].visible ?? true)
+    }
+  }
+  if (traceIndices.length === 0) {
+    return
+  }
+  interactionLayerVisibility = {traceIndices, visible}
+  await Plotly.update(
+    graph,
+    {visible: traceIndices.map(() => false)},
+    {},
+    traceIndices,
+  )
+}
+
+
+async function restoreInteractionLayers() {
+  scheduleInteractionLayerRestore.cancel()
+  const hidden = interactionLayerVisibility
+  interactionLayerVisibility = null
+  if (hidden === null) {
+    return
+  }
+  await Plotly.update(
+    graph,
+    {visible: hidden.visible},
+    {},
+    hidden.traceIndices,
+  )
+}
 
 
 function updateSelectionControls() {
@@ -350,6 +452,11 @@ function nextEventId() {
 
 function markUserInteraction() {
   lastUserInteractionAt = performance.now()
+  void hideExpensiveInteractionLayers().catch(error => {
+    status.textContent = text("error.zoom", {detail: error.message})
+    void restoreInteractionLayers()
+  })
+  scheduleInteractionLayerRestore(restoreInteractionLayers)
 }
 
 
@@ -382,7 +489,14 @@ async function showDraftCamera(nextCamera) {
 }
 
 
-for (const eventName of ["pointerdown", "touchstart"]) {
+for (const eventName of [
+  "pointerdown",
+  "pointermove",
+  "pointerup",
+  "touchstart",
+  "touchmove",
+  "touchend",
+]) {
   graph.addEventListener(eventName, event => {
     if (shouldMarkCameraInteraction(selectionModeActive, event)) {
       markUserInteraction()
@@ -404,7 +518,7 @@ async function showDraftAspectRatio(nextAspectRatio) {
     "scene.aspectratio": draftAspectRatio,
     "scene.aspectmode": "manual",
   })
-  scheduleViewerTraceStyleSync(syncViewerTraceStyles)
+  scheduleTraceStyleSync()
   persistViewerSession()
   scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
 }
@@ -428,6 +542,9 @@ viewerWrap.addEventListener("wheel", event => {
 async function onRender(event) {
   try {
     const args = event.detail.args
+    scheduleFinalViewerTraceStyleSync.cancel()
+    scheduleInteractionLayerRestore.cancel()
+    interactionLayerVisibility = null
     applyViewerMessages(args.locale, args.messages)
     const nextApplied = normalizeCamera(args.applied_camera)
     axisCameras = {
@@ -481,6 +598,7 @@ async function onRender(event) {
       pythonSelectedIndices,
     )
     batchSelectionEnabled = Boolean(args.batch_selection_enabled)
+    extreme3dInteraction = args.extreme_3d_interaction === true
     if (
       (restoredState === null && (structureChanged || revisionChanged))
       || pythonSelectionChanged
@@ -536,7 +654,7 @@ async function onRender(event) {
         draftAspectRatio = nextAspectRatio
         setDirtyState()
         if (zoomChanged) {
-          scheduleViewerTraceStyleSync(syncViewerTraceStyles)
+          scheduleTraceStyleSync()
         }
         scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
       } catch (error) {
@@ -564,6 +682,7 @@ async function onRender(event) {
     updateSelectionControls()
     scheduleProjectedAtomsRefresh(refreshProjectedAtoms)
   } catch (error) {
+    void restoreInteractionLayers()
     status.textContent = viewerMessages === null
       ? String(error.message)
       : text("error.load", {detail: error.message})
@@ -604,7 +723,7 @@ clearSelectionButton.addEventListener("click", () => {
   }
   draftSelectedIndices = []
   updateSelectionControls()
-  void syncViewerTraceStyles()
+  void syncSelectionTrace()
 })
 
 
@@ -661,7 +780,7 @@ viewerWrap.addEventListener("pointerup", event => {
   viewerWrap.releasePointerCapture?.(event.pointerId)
   hideSelectionBox()
   if (dragDistance < DRAG_THRESHOLD) {
-    const atom = nearestAtomAtPoint(projectedAtoms, end, CLICK_HIT_RADIUS)
+    const atom = selectionSpatialIndex?.nearest(end, CLICK_HIT_RADIUS) ?? null
     if (atom !== null) {
       draftSelectedIndices = toggleAtomIndex(
         draftSelectedIndices,
@@ -671,20 +790,21 @@ viewerWrap.addEventListener("pointerup", event => {
   } else {
     draftSelectedIndices = addAtomIndices(
       draftSelectedIndices,
-      atomsInsideRectangle(projectedAtoms, {
+      selectionSpatialIndex?.insideRectangle({
         x0: start.x,
         y0: start.y,
         x1: end.x,
         y1: end.y,
-      }),
+      }) ?? [],
     )
   }
   updateSelectionControls()
-  void syncViewerTraceStyles()
+  void syncSelectionTrace()
 }, { capture: true })
 
 
 viewerWrap.addEventListener("pointercancel", event => {
+  void restoreInteractionLayers()
   if (selectionGesture?.pointerId !== event.pointerId) {
     return
   }

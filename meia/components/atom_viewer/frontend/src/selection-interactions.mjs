@@ -46,7 +46,16 @@ export function shouldMarkCameraInteraction(selectionModeActive, event) {
   if (selectionModeActive) {
     return false
   }
-  return event?.type === "pointerdown" || event?.type === "touchstart"
+  if (event?.type === "pointermove") {
+    return (event.buttons & 1) !== 0
+  }
+  return [
+    "pointerdown",
+    "pointerup",
+    "touchstart",
+    "touchmove",
+    "touchend",
+  ].includes(event?.type)
 }
 
 

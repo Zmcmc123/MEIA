@@ -72,6 +72,18 @@ test("selection clicks never refresh the camera-interaction clock", async () => 
     true,
   )
   assert.equal(
+    shouldMarkCameraInteraction(false, {type: "pointermove", buttons: 1}),
+    true,
+  )
+  assert.equal(
+    shouldMarkCameraInteraction(false, {type: "pointermove", buttons: 0}),
+    false,
+  )
+  assert.equal(
+    shouldMarkCameraInteraction(false, {type: "pointerup", button: 0}),
+    true,
+  )
+  assert.equal(
     shouldMarkCameraInteraction(true, {type: "pointerdown", button: 0}),
     false,
   )

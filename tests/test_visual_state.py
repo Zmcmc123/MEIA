@@ -225,11 +225,9 @@ def test_custom_display_radii_flow_to_2d_3d_bonds_hydrogen_bonds_and_svg():
         for trace in figure_3d.data
         if trace.meta and trace.meta.get("meia_role") == "selection"
     )
-    expected_selection_sizes = np.where(
-        np.asarray(projection.source_atom_indices) == 1,
-        np.asarray(atom_trace.marker.size),
-        0.0,
-    )
+    expected_selection_sizes = np.asarray(atom_trace.marker.size)[
+        np.asarray(projection.source_atom_indices) == 1
+    ]
     assert np.asarray(highlight_trace.marker.size) == pytest.approx(
         expected_selection_sizes
     )

@@ -222,33 +222,37 @@ def create_3d_figure(
 
     if selected_atom_indices is not None or highlighted:
         selected_set = set(highlighted)
-        selection_colors = [
-            "rgba(255,213,79,0.55)"
-            if source_index in selected_set
-            else "rgba(0,0,0,0)"
-            for source_index in source_atom_indices
-        ]
-        selection_sizes = [
-            float(atom_marker_sizes[index])
-            if source_index in selected_set
-            else 0.0
+        selected_instance_rows = [
+            index
             for index, source_index in enumerate(source_atom_indices)
+            if source_index in selected_set
+        ]
+        selection_positions = (
+            positions[selected_instance_rows]
+            if selected_instance_rows
+            else np.empty((0, 3), dtype=float)
+        )
+        selection_sizes = [
+            float(atom_marker_sizes[index]) for index in selected_instance_rows
+        ]
+        selection_source_indices = [
+            source_atom_indices[index] for index in selected_instance_rows
         ]
         fig.add_trace(go.Scatter3d(
-            x=positions[:, 0],
-            y=positions[:, 1],
-            z=positions[:, 2],
+            x=selection_positions[:, 0],
+            y=selection_positions[:, 1],
+            z=selection_positions[:, 2],
             mode="markers",
             marker=dict(
                 size=selection_sizes,
-                color=selection_colors,
+                color=["rgba(255,213,79,0.55)"] * len(selection_sizes),
                 line=dict(color="#F9A825", width=2),
             ),
-            customdata=customdata,
+            customdata=[customdata[index] for index in selected_instance_rows],
             meta={
                 "meia_role": "selection",
-                "meia_base_marker_sizes": atom_marker_sizes.tolist(),
-                "meia_source_atom_indices": source_atom_indices,
+                "meia_base_marker_sizes": selection_sizes,
+                "meia_source_atom_indices": selection_source_indices,
             },
             hoverinfo="skip",
             name=(
@@ -506,6 +510,7 @@ def atom_viewer(
     style_dirty: bool = False,
     selected_atom_indices: Sequence[int] | None = None,
     batch_selection_enabled: bool = False,
+    extreme_3d_interaction: bool = False,
 ) -> Any:
     """渲染项目自有 Viewer，并返回最新组件事件。"""
     return render_atom_viewer(
@@ -519,6 +524,7 @@ def atom_viewer(
         selected_atom_index=selected_atom_index,
         selected_atom_indices=selected_atom_indices,
         batch_selection_enabled=batch_selection_enabled,
+        extreme_3d_interaction=extreme_3d_interaction,
         style_dirty=style_dirty,
         key=key,
     )
