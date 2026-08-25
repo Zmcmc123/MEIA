@@ -41,6 +41,12 @@ from .periodic_display import (
     estimate_periodic_atom_instances,
     normalize_periodic_settings,
 )
+from .selection_paging import (
+    ATOM_SELECTION_PAGE_SIZE,
+    LARGE_SELECTION_THRESHOLD,
+    apply_page_selection,
+    selection_page,
+)
 from .visual_state import (
     AtomCellSettings,
     BondModuleSettings,
@@ -817,27 +823,100 @@ def render_atom_selection_form(
     def draft_key(base: str) -> str:
         return atom_selection_draft_widget_key(base, revision)
 
-    selection_widget_key = draft_key("meia_atom_selection_indices")
-    selection_default = (
-        {"default": list(current.selected_atom_indices)}
-        if selection_widget_key not in st.session_state
-        else {}
-    )
+    large_selection = len(atoms) >= LARGE_SELECTION_THRESHOLD
+    searchable: tuple[int, ...] | list[int] = ()
+    page_selected: tuple[int, ...] | list[int] = ()
+    page_action = "add"
+    active_page = None
 
     with st.form(
         draft_key("meia_atom_selection_form"),
         clear_on_submit=False,
     ):
-        searchable = st.multiselect(
-            i18n.text("selection.current"),
-            atom_indices,
-            format_func=lambda index: (
-                f"{symbols[index]} #{index + 1}"
-                + (i18n.text("selection.hidden_suffix") if index in hidden else "")
-            ),
-            key=selection_widget_key,
-            **selection_default,
-        )
+        if large_selection:
+            st.caption(
+                i18n.text(
+                    "selection.summary_count",
+                    count=len(current.selected_atom_indices),
+                )
+            )
+            if current.selected_atom_indices:
+                summary_labels = [
+                    f"{symbols[index]} #{index + 1}"
+                    + (
+                        i18n.text("selection.hidden_suffix")
+                        if index in hidden
+                        else ""
+                    )
+                    for index in current.selected_atom_indices[:20]
+                ]
+                st.caption(
+                    i18n.text(
+                        "selection.summary_atoms",
+                        atoms=", ".join(summary_labels),
+                    )
+                )
+            page_count = (len(atoms) + ATOM_SELECTION_PAGE_SIZE - 1) // (
+                ATOM_SELECTION_PAGE_SIZE
+            )
+            page_number = int(
+                st.number_input(
+                    i18n.text("selection.page_number", count=page_count),
+                    min_value=1,
+                    max_value=page_count,
+                    value=1,
+                    step=1,
+                    key=draft_key("meia_atom_selection_page_number"),
+                )
+            )
+            active_page = selection_page(len(atoms), page_number)
+            page_selected = st.multiselect(
+                i18n.text(
+                    "selection.page_atoms",
+                    count=ATOM_SELECTION_PAGE_SIZE,
+                ),
+                active_page.indices,
+                format_func=lambda index: (
+                    f"{symbols[index]} #{index + 1}"
+                    + (
+                        i18n.text("selection.hidden_suffix")
+                        if index in hidden
+                        else ""
+                    )
+                ),
+                key=draft_key(
+                    f"meia_atom_selection_page_indices_{page_number}"
+                ),
+            )
+            page_action = st.selectbox(
+                i18n.text("selection.page_action"),
+                ("add", "remove"),
+                format_func=lambda action: i18n.text(
+                    f"selection.page_action.{action}"
+                ),
+                key=draft_key("meia_atom_selection_page_action"),
+            )
+        else:
+            selection_widget_key = draft_key("meia_atom_selection_indices")
+            selection_default = (
+                {"default": list(current.selected_atom_indices)}
+                if selection_widget_key not in st.session_state
+                else {}
+            )
+            searchable = st.multiselect(
+                i18n.text("selection.current"),
+                atom_indices,
+                format_func=lambda index: (
+                    f"{symbols[index]} #{index + 1}"
+                    + (
+                        i18n.text("selection.hidden_suffix")
+                        if index in hidden
+                        else ""
+                    )
+                ),
+                key=selection_widget_key,
+                **selection_default,
+            )
         index_expression = st.text_input(
             i18n.text("selection.by_index"),
             value="",
@@ -951,7 +1030,17 @@ def render_atom_selection_form(
     if not submitted:
         return None
     try:
-        final = set(searchable)
+        if active_page is None:
+            final = set(searchable)
+        else:
+            final = set(
+                apply_page_selection(
+                    current.selected_atom_indices,
+                    page_selected,
+                    page_action,
+                    allowed_indices=active_page.indices,
+                )
+            )
         final.update(parse_atom_index_expression(index_expression, len(atoms)))
         final.update(
             index

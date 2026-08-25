@@ -77,6 +77,13 @@ from .periodic_display import (
     estimate_periodic_atom_instances,
     normalize_periodic_settings,
 )
+from .selection_paging import (
+    ATOM_SELECTION_PAGE_SIZE,
+    LARGE_SELECTION_THRESHOLD,
+    AtomSelectionPage,
+    apply_page_selection,
+    selection_page,
+)
 from .geometry import compute_bond_geometries, BondGeometry
 from .renderer import render
 from .export import (

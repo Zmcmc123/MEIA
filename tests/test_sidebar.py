@@ -1117,6 +1117,55 @@ def test_atom_selection_form_uses_deterministic_union_then_invert_algorithm(
     assert result.bond_overrides == ()
 
 
+def test_atom_selection_form_keeps_full_searchable_list_below_large_threshold(
+    monkeypatch,
+):
+    atoms = Atoms(symbols=["H"] * 999, positions=[[0, 0, 0]] * 999)
+    fake = FakeStreamlit()
+    monkeypatch.setattr("meia.sidebar.st", fake)
+
+    assert render_atom_selection_form(AtomSelectionSettings(), atoms, ()) is None
+
+    assert len(fake.formatted_options["当前选择（可搜索）"]) == 999
+
+
+def test_atom_selection_form_pages_atom_options_at_large_threshold(monkeypatch):
+    atoms = Atoms(symbols=["H"] * 1000, positions=[[0, 0, 0]] * 1000)
+    current = AtomSelectionSettings(selected_atom_indices=(0, 500, 999))
+    fake = FakeStreamlit()
+    monkeypatch.setattr("meia.sidebar.st", fake)
+
+    assert render_atom_selection_form(current, atoms, ()) is None
+
+    assert "当前选择（可搜索）" not in fake.formatted_options
+    assert max(len(options) for options in fake.formatted_options.values()) <= 200
+    assert len(fake.formatted_options["当前页原子（最多 200 个）"]) == 200
+    assert "当前已选择 3 个原子。" in fake.captions
+    assert any("H #1" in caption and "H #1000" in caption for caption in fake.captions)
+
+
+def test_large_atom_selection_combines_page_index_and_element_union(monkeypatch):
+    symbols = ["H"] * 997 + ["O", "Ca", "C"]
+    atoms = Atoms(symbols=symbols, positions=[[0, 0, 0]] * 1000)
+    current = AtomSelectionSettings(selected_atom_indices=(900,))
+    fake = FakeStreamlit(
+        submitted={"应用原子操作"},
+        values={
+            "原子页码（共 5 页）": 1,
+            "当前页原子（最多 200 个）": [5],
+            "当前页操作": "add",
+            "按序号加入选择": "250",
+            "按元素加入选择": ["Ca"],
+        },
+    )
+    monkeypatch.setattr("meia.sidebar.st", fake)
+
+    result = render_atom_selection_form(current, atoms, ())
+
+    assert result is not None
+    assert result.selected_atom_indices == (5, 249, 900, 998)
+
+
 def test_atom_selection_clear_has_highest_precedence(monkeypatch):
     atoms = Atoms("HO", positions=[[0, 0, 0], [1, 0, 0]])
     fake = FakeStreamlit(
@@ -1144,14 +1193,17 @@ def test_atom_selection_form_emphasizes_subject_without_expanding_background(
     fake = FakeStreamlit(
         submitted={"应用原子操作"},
         values={
-            "当前选择（可搜索）": [3, 7],
             "强调当前选区为主体": True,
             "背景色彩强度": 30,
         },
     )
     monkeypatch.setattr("meia.sidebar.st", fake)
 
-    result = render_atom_selection_form(AtomSelectionSettings(), atoms, ())
+    result = render_atom_selection_form(
+        AtomSelectionSettings(selected_atom_indices=(3, 7)),
+        atoms,
+        (),
+    )
 
     assert result is not None
     assert result.selected_atom_indices == (3, 7)
