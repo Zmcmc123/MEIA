@@ -16,7 +16,7 @@ MEIA 是用于原子构型交互检查和出版级二维示意图制作的可视
 - 通过 ASE 读取 POSCAR/CONTCAR、CIF、XYZ 和 LAMMPS data 等构型文件。
 - 三维旋转、平移、缩放和原子选择，并可对部分原子/化学键进行隐藏/显示操作。
 - 共价半径与相等半径两套尺寸方案，支持元素颜色、化学键、氢键、晶胞和周期性设置。
-- 大体系按需生成 2D 预览，支持主体强调、分页原子选择和交互期图层简化。
+- 大体系按需生成 2D 预览，支持分页原子选择和交互期图层简化。
 - 通用风格预设、工作状态快照和批量渲染。
 - 导出 SVG、PNG 和 PDF；SVG 保留可编辑分组。
 
@@ -81,17 +81,14 @@ Streamlit 通常会自动打开浏览器；也可访问 [http://localhost:8501](
 python -m meia.batch --help
 ```
 
-## 大体系行为与测试案例
+## 大体系行为
 
 - 小体系仍自动生成 2D 预览；达到复杂度阈值后，需点击“生成/更新 2D 预览”。已过期预览可供对照，但不能作为当前图像下载。
 - 2D 和所有 SVG/PNG/PDF 最终导出始终使用完整数据，不使用降采样结果。
 - 源原子数达到 1,000 后，侧栏按每页 200 个原子选择；也可继续使用 3D 点选、框选、序号范围和元素选择。
 - 显示实例达到 20,000 后，旋转或缩放期间临时隐藏化学键描边和氢键，停止交互后自动恢复。周期展开的安全上限为 50,000 个原子实例。
 
-公开大体系案例以仓库内的 `examples/CONTCAR` 为原型，先进行 `5×5×1` 扩胞，再在真空区加入两层共 200 个 H₂O。案例包含
-[6,225 原子的结构](examples/MEIA_large_system_5x5_200H2O.xyz)和对应的
-[工作状态快照](examples/MEIA_large_system_5x5_200H2O.workspace.meia.json)。
-直接导入结构可测试大体系侧栏；导入快照并确认覆盖后，使用 `1×1×1` 周期显示，共显示 6,225 个原子实例，并将第一个新增水分子作为主体。该案例仅用于性能和交互测试，不代表经过验证的物理模型。
+开发者可使用 `python -m meia.benchmark_large_system --help` 在本地生成固定随机种子的 slab + 水体系并运行性能基准。仓库不再附带大体积结构或快照。
 
 ## 可选：开发三维前端
 
@@ -115,7 +112,7 @@ python -m pytest -W error::FutureWarning --strict-markers -q -m "not release"
 发布前运行完整检查（包含参考产物再生与仓库一致性检查）：
 
 ```bash
-python -m compileall -q app.py meia scripts tests
+python -m compileall -q app.py meia tests
 python -m pytest -W error::FutureWarning --strict-markers -q
 ```
 

@@ -31,7 +31,7 @@ from ase.utils import rotate
 import app as app_module
 import meia.projection as projection_module
 import meia.visual_state as visual_state_module
-import scripts.regenerate_visualization_example as regeneration_script
+import meia.regenerate_visualization_example as regeneration_script
 from meia.atom_styles import (
     AtomColorStrength,
     AtomSelectionSettings,
@@ -1189,7 +1189,12 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
     assert "📥 导出" not in app_module.st.subheaders
 
 
-def _run_main_with_manual_preview_policy(monkeypatch, *, refresh_clicked):
+def _run_main_with_preview_policy(
+    monkeypatch,
+    *,
+    complexity=None,
+    refresh_clicked=False,
+):
     class FakeStreamlit:
         def __init__(self):
             self.session_state = {}
@@ -1227,6 +1232,8 @@ def _run_main_with_manual_preview_policy(monkeypatch, *, refresh_clicked):
         view_revision="manual-preview",
     )
     calls = {"render_2d": 0, "preview_png": 0, "close": 0}
+    if complexity is None:
+        complexity = DisplayComplexity.from_counts(900, 900, 650, 200)
 
     def capture_render_2d(*_args, **_kwargs):
         calls["render_2d"] += 1
@@ -1265,7 +1272,7 @@ def _run_main_with_manual_preview_policy(monkeypatch, *, refresh_clicked):
     monkeypatch.setattr(
         app_module,
         "measure_display_complexity",
-        lambda *_args: DisplayComplexity.from_counts(900, 900, 650, 200),
+        lambda *_args: complexity,
         raising=False,
     )
     monkeypatch.setattr(app_module, "render_2d", capture_render_2d)
@@ -1290,7 +1297,7 @@ def _run_main_with_manual_preview_policy(monkeypatch, *, refresh_clicked):
 
 
 def test_large_system_skips_automatic_2d_preview(monkeypatch):
-    fake, calls = _run_main_with_manual_preview_policy(
+    fake, calls = _run_main_with_preview_policy(
         monkeypatch,
         refresh_clicked=False,
     )
@@ -1301,13 +1308,35 @@ def test_large_system_skips_automatic_2d_preview(monkeypatch):
 
 
 def test_large_system_refresh_generates_one_current_artifact(monkeypatch):
-    fake, calls = _run_main_with_manual_preview_policy(
+    fake, calls = _run_main_with_preview_policy(
         monkeypatch,
         refresh_clicked=True,
     )
 
     assert calls == {"render_2d": 1, "preview_png": 1, "close": 1}
     assert "生成/更新 2D 预览" in fake.buttons
+
+
+def test_small_system_still_generates_2d_preview_automatically(monkeypatch):
+    fake, calls = _run_main_with_preview_policy(
+        monkeypatch,
+        complexity=DisplayComplexity.from_counts(225, 225, 100, 20),
+    )
+
+    assert calls == {"render_2d": 1, "preview_png": 1, "close": 1}
+    assert "生成/更新 2D 预览" not in fake.buttons
+
+
+def test_large_3d_system_reports_source_and_display_instance_counts(monkeypatch):
+    fake, _calls = _run_main_with_preview_policy(
+        monkeypatch,
+        complexity=DisplayComplexity.from_counts(225, 5_000, 0, 0),
+    )
+
+    assert (
+        "当前体系包含 225 个源原子，周期展开后显示 5000 个原子实例；"
+        "3D 交互可能需要更多时间。"
+    ) in fake.captions
 
 
 def test_cross_layer_periodic_identity_and_input_immutability(monkeypatch):
@@ -3067,12 +3096,12 @@ def test_reference_regeneration_rejects_substituted_source_without_writes(
 ):
     project_root = Path(__file__).resolve().parents[1]
     sandbox_root = tmp_path / "sandbox-project"
-    sandbox_script = sandbox_root / "scripts" / "regenerate_visualization_example.py"
+    sandbox_script = sandbox_root / "meia" / "regenerate_visualization_example.py"
     sandbox_examples = sandbox_root / "examples"
     sandbox_script.parent.mkdir(parents=True)
     sandbox_examples.mkdir()
     shutil.copy2(
-        project_root / "scripts" / "regenerate_visualization_example.py",
+        project_root / "meia" / "regenerate_visualization_example.py",
         sandbox_script,
     )
 
@@ -3184,7 +3213,8 @@ def test_regeneration_script_writes_and_checks_manifest_hashes(tmp_path):
         )
         command = [
             sys.executable,
-            str(project_root / "scripts" / "regenerate_visualization_example.py"),
+            "-m",
+            "meia.regenerate_visualization_example",
             "--input",
             str(input_path),
             "--manifest",

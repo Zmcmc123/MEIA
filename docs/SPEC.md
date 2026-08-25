@@ -186,7 +186,7 @@ Python 包、导入路径和批处理入口统一为 `meia/`、`meia.*` 和 `pyt
 - 2D artist 估算值达到 5,000 后，页面不在每次 Streamlit 重跑时自动渲染 Matplotlib；用户通过“生成/更新 2D 预览”显式生成完整结果。
 - 预览缓存同时绑定结构、可视化状态和已应用 2D 视角。状态变化后旧图可标记为过期供对照，但不能以当前文件名下载。批处理和最终 SVG/PNG/PDF 导出不使用该按需策略。
 - 源原子数从 1,000 起，侧栏原子选择使用 200 项分页窗口；当前选区摘要最多显示 20 个身份，不向 Streamlit 传送全部选项。
-- “强调当前选区为主体”以一个默认背景强度和少量主体例外表示；不在运行时创建数千条背景记录。严格 schema v7 导出时仍展开为原有逐原子语义。
+- 运行时以默认强度和少量逐原子例外紧凑表示色彩强度；严格 schema v7 导出时仍展开为原有逐原子语义。
 - 3D 缩放每帧仅使用一次批量 Plotly 数据/布局更新，并在约 80 ms 空闲后做最终同步；选择高亮只保留已选源原子的周期实例，屏幕点选/框选使用 36 px 网格索引。
 - 显示原子实例从 20,000 起，旋转或缩放期间仅临时隐藏化学键描边和氢键，约 120 ms 无交互后恢复。该状态不进入 JSON，不改变图层开关或导出。
 - 周期显示不得超过 50,000 个原子实例；超限时拒绝设置并给出明确诊断，不隐式降采样。
@@ -201,7 +201,7 @@ Python 包、导入路径和批处理入口统一为 `meia/`、`meia.*` 和 `pyt
 - 页面 2D 预览固定显示为 `900×675` CSS px，内部使用 `1800×1350` PNG（2× 像素密度）；文件导出的 DPI 继续由导出设置独立控制
 - 文件式导出默认拒绝覆盖已有路径，只能由调用方显式授权覆盖
 - 页面图像、通用风格预设和工作状态快照的下载全部位于侧栏“导出”模块，主页面不再重复显示导出区。
-- `examples/CONTCAR`、`examples/meia-visual-state.workspace.meia.json`、`examples/CONTCAR_meia.svg`、`examples/CONTCAR_meia-2.svg` 和 `examples/CONTCAR_meia-2.png` 构成当前公开教程案例；`MEIA_large_system_5x5_200H2O.xyz` 及同名工作快照是从该 CONTCAR 经 `5×5×1` 扩胞并新增 200 个 H₂O 得到的大体系交互测试案例，快照使用 `1×1×1` 周期显示。工作状态快照使用严格 schema v7。两类示例均不代表经过验证的物理参数。
+- `examples/CONTCAR`、`examples/meia-visual-state.workspace.meia.json`、`examples/CONTCAR_meia.svg`、`examples/CONTCAR_meia-2.svg` 和 `examples/CONTCAR_meia-2.png` 构成当前公开教程案例。工作状态快照使用严格 schema v7；示例不代表经过验证的物理参数。大体系性能负载由 `python -m meia.benchmark_large_system` 在本地生成，仓库不附带大体积案例文件。
 
 ### F7. 批量处理
 

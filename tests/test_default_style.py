@@ -243,7 +243,8 @@ def test_default_style_and_generator_report_meia_0_11_0(tmp_path):
     result = subprocess.run(
         [
             sys.executable,
-            str(PROJECT_ROOT / "scripts" / "generate_default_style.py"),
+            "-m",
+            "meia.generate_default_style",
             "--output",
             str(output),
         ],
@@ -264,9 +265,14 @@ def test_default_style_and_generator_report_meia_0_11_0(tmp_path):
 
 @pytest.mark.release
 def test_palette_generator_refuses_silent_overwrite_and_is_deterministic(tmp_path):
-    script = PROJECT_ROOT / "scripts" / "generate_default_style.py"
     output = tmp_path / "generated.meia.json"
-    command = [sys.executable, str(script), "--output", str(output)]
+    command = [
+        sys.executable,
+        "-m",
+        "meia.generate_default_style",
+        "--output",
+        str(output),
+    ]
 
     first = subprocess.run(command, cwd=PROJECT_ROOT, capture_output=True, text=True)
     assert first.returncode == 0, first.stderr

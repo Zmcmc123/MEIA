@@ -7,14 +7,13 @@ import sys
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-BENCHMARK = PROJECT_ROOT / "scripts" / "benchmark_large_system.py"
+BENCHMARK_COMMAND = [sys.executable, "-m", "meia.benchmark_large_system"]
 
 
 def test_large_system_benchmark_reports_machine_readable_metrics():
     result = subprocess.run(
         [
-            sys.executable,
-            str(BENCHMARK),
+            *BENCHMARK_COMMAND,
             "--nx",
             "2",
             "--water-layers",
@@ -43,7 +42,7 @@ def test_large_system_benchmark_reports_machine_readable_metrics():
 
 def test_large_system_benchmark_rejects_nonpositive_grid():
     result = subprocess.run(
-        [sys.executable, str(BENCHMARK), "--nx", "0", "--skip-2d"],
+        [*BENCHMARK_COMMAND, "--nx", "0", "--skip-2d"],
         cwd=PROJECT_ROOT,
         text=True,
         capture_output=True,

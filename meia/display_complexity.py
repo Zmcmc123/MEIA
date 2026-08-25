@@ -100,5 +100,5 @@ def measure_display_complexity(
         source_atom_count,
         atom_instance_count,
         visible_bond_instance_count,
-        len(context.hydrogen_bonds),
+        sum(1 for hydrogen_bond in context.hydrogen_bonds if hydrogen_bond.visible),
     )

@@ -57,8 +57,8 @@ MEIA 不替代专业建模软件，也不保证结构解析、成键判断或图
 根据影响范围运行最小测试，并在完成前运行完整检查：
 
 ```bash
-python -m compileall -q app.py meia scripts tests
-python scripts/check_public_docs.py
+python -m compileall -q app.py meia tests
+python -m meia.check_public_docs
 python -m pytest -W error::FutureWarning -q
 ```
 
@@ -82,7 +82,7 @@ npm run build
 
 - 不提交密钥、个人路径、服务器信息、机密构型、原始轨迹或受限制数据。
 - 不删除或覆盖用户文件；必须删除时先确认精确目标和可恢复方式。
-- 公开文档只链接仓库中实际存在的文件；教程资源由 `scripts/check_public_docs.py` 校验。
+- 公开文档只链接仓库中实际存在的文件；教程资源由 `python -m meia.check_public_docs` 校验。
 - MEIA 自有代码的使用边界见 `LICENSE.md` 和 `license/COMMERCIAL.md`；第三方组件按各自许可。
 - 漏洞按 `SECURITY.md` 私下报告；不要在公开 Issue 中披露。
 - 未经维护者明确邀请和书面贡献条款确认，不接受外部代码 Pull Request；详见 `CONTRIBUTING.md`。

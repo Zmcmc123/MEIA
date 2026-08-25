@@ -1,9 +1,12 @@
 """大体系显示复杂度与自动预览策略。"""
 
+from dataclasses import replace
+
 import numpy as np
 from ase import Atoms
 
 from meia.display_complexity import DisplayComplexity, measure_display_complexity
+from meia.hydrogen_bonds import DisplayHydrogenBond, HydrogenBondCandidate
 from meia.visual_state import VisualizationState, resolve_render_context
 
 
@@ -41,3 +44,39 @@ def test_measure_display_complexity_counts_real_visible_context_without_mutation
     assert measured.hydrogen_bond_instance_count == 0
     assert measured.estimated_2d_artist_count == 15
     assert np.array_equal(atoms.positions, snapshot)
+
+
+def test_hidden_hydrogen_bonds_do_not_switch_small_preview_to_manual():
+    atoms = Atoms(
+        "OHH",
+        positions=[[0.0, 0.0, 0.0], [0.96, 0.0, 0.0], [-0.24, 0.93, 0.0]],
+    )
+    context = resolve_render_context(atoms, VisualizationState())
+    candidate = HydrogenBondCandidate(
+        donor_oxygen=0,
+        hydrogen=1,
+        acceptor_oxygen=2,
+        donor_oxygen_offset_from_hydrogen=(0, 0, 0),
+        acceptor_offset_from_hydrogen=(0, 0, 0),
+        hydrogen_acceptor_distance=2.0,
+        angle_degrees=180.0,
+        hydrogen_bond_id="hidden-hbond",
+    )
+    hidden = DisplayHydrogenBond(
+        candidate=candidate,
+        donor_oxygen_key=(0, (0, 0, 0)),
+        hydrogen_key=(1, (0, 0, 0)),
+        acceptor_oxygen_key=(2, (0, 0, 0)),
+        instance_id="hidden-hbond@0,0,0",
+        color="#78909C",
+        color_strength=1.0,
+        visible=False,
+        visibility_source="atom_override",
+    )
+    context = replace(context, hydrogen_bonds=(hidden,) * 4_985)
+
+    measured = measure_display_complexity(len(atoms), context)
+
+    assert measured.hydrogen_bond_instance_count == 0
+    assert measured.estimated_2d_artist_count == 15
+    assert measured.manual_2d_recommended is False

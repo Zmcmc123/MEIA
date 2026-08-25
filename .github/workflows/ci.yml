@@ -30,9 +30,9 @@ jobs:
       - name: Check dependency consistency
         run: python -m pip check
       - name: Compile Python sources
-        run: python -m compileall -q app.py meia scripts tests
+        run: python -m compileall -q app.py meia tests
       - name: Validate public documentation
-        run: python scripts/check_public_docs.py
+        run: python -m meia.check_public_docs
       - name: Run routine Python tests
         run: python -m pytest -W error::FutureWarning --strict-markers -q -m "not release"
         env:

@@ -64,25 +64,6 @@ def test_color_strength_rejects_values_outside_absolute_unit_interval(strength):
         styles.apply_color_strength("#DFA3A3", strength)
 
 
-def test_subject_emphasis_keeps_subject_selection_and_compacts_background():
-    styles = _styles_module()
-    atoms = Atoms(symbols=["H"] * 5000)
-    current = styles.AtomSelectionSettings(selected_atom_indices=(3, 7))
-
-    updated = styles.emphasize_subject(atoms, current, 0.30)
-
-    assert updated.selected_atom_indices == (3, 7)
-    assert updated.default_color_strength == pytest.approx(0.30)
-    assert [(item.atom_index, item.strength) for item in updated.color_strengths] == [
-        (3, 1.0),
-        (7, 1.0),
-    ]
-    values = styles.resolved_color_strengths(updated, len(atoms))
-    assert values[3] == pytest.approx(1.0)
-    assert values[7] == pytest.approx(1.0)
-    assert values[4999] == pytest.approx(0.30)
-
-
 def test_strength_operation_compacts_against_profile_default():
     styles = _styles_module()
     atoms = Atoms("HH", positions=np.zeros((2, 3)))

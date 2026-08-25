@@ -368,33 +368,6 @@ def compact_color_strengths(
     return default, exceptions
 
 
-def emphasize_subject(
-    atoms: Atoms,
-    settings: AtomSelectionSettings,
-    background_strength: object,
-) -> AtomSelectionSettings:
-    """保留当前小选区为全强度主体，用单一默认值弱化背景。"""
-    if not isinstance(atoms, Atoms):
-        raise TypeError("主体强调必须绑定 ASE Atoms")
-    validate_atom_selection_settings(atoms, settings)
-    if not settings.selected_atom_indices:
-        raise LocalizedError(
-            "请先选择至少一个主体原子",
-            message_key="selection.subject_required",
-        )
-    value = normalize_color_strength(background_strength)
-    symbols = atoms.get_chemical_symbols()
-    return replace(
-        settings,
-        default_color_strength=value,
-        color_strengths=tuple(
-            AtomColorStrength(index, symbols[index], 1.0)
-            for index in settings.selected_atom_indices
-            if value != 1.0
-        ),
-    )
-
-
 @dataclass(frozen=True)
 class AtomSelectionOperation:
     """对当前选区执行的一次原子化样式操作。"""

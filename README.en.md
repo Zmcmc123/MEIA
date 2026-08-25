@@ -16,7 +16,7 @@ MEIA is an atomistic-structure visualization application for interactive inspect
 - Read POSCAR/CONTCAR, CIF, XYZ, LAMMPS data, and other formats supported by ASE.
 - Rotate, pan, zoom, and select atoms in 3D, then hide or show certain atoms or chemical bonds.
 - Use covalent- or uniform-radius profiles and configure colours, bonds, hydrogen bonds, the unit cell, and periodic replicas.
-- Generate large-system 2D previews on demand, with subject emphasis, paged atom selection, and interaction-only layer simplification.
+- Generate large-system 2D previews on demand, with paged atom selection and interaction-only layer simplification.
 - Import and export style presets and workspace snapshots, or batch-render multiple structures.
 - Export SVG, PNG, and PDF; SVG preserves editable groups.
 
@@ -81,17 +81,14 @@ Batch-rendering options:
 python -m meia.batch --help
 ```
 
-## Large-system behaviour and test example
+## Large-system behaviour
 
 - Small structures still receive an automatic 2D preview. Above the complexity threshold, use **Generate/Update 2D Preview**. A stale preview remains visible for comparison but cannot be downloaded as the current image.
 - Final 2D rendering and every SVG/PNG/PDF export always use the complete data; MEIA does not label a downsampled result as final.
 - At 1,000 source atoms, the sidebar switches to 200-atom pages. 3D click/box selection, index ranges, and element selection remain available.
 - At 20,000 displayed atom instances, bond outlines and hydrogen bonds are hidden only during rotation or zoom and restored after interaction. Periodic expansion has a 50,000-instance safety cap.
 
-The public large-system example starts from the repository's `examples/CONTCAR`, repeats it `5×5×1`, and adds two layers containing 200 H₂O molecules in the vacuum region. It includes a
-[6,225-atom structure](examples/MEIA_large_system_5x5_200H2O.xyz) and its
-[workspace snapshot](examples/MEIA_large_system_5x5_200H2O.workspace.meia.json).
-Import the structure to test the large sidebar. Import and confirm the snapshot to use a `1×1×1` periodic display (6,225 atom instances) with the first added water molecule emphasized. This example is for performance and interaction testing, not a validated physical model.
+Developers can run `python -m meia.benchmark_large_system --help` to generate a deterministic slab-and-water workload locally and execute the performance benchmark. The repository no longer ships a large structure or workspace snapshot.
 
 ## Optional: develop the 3D frontend
 
@@ -116,7 +113,7 @@ Before a release, run the complete checks, including reference-artifact
 regeneration and repository-integrity tests:
 
 ```bash
-python -m compileall -q app.py meia scripts tests
+python -m compileall -q app.py meia tests
 python -m pytest -W error::FutureWarning --strict-markers -q
 ```
 

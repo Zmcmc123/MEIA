@@ -7,15 +7,15 @@ import subprocess
 import sys
 
 
-CHECKER = Path(__file__).resolve().parents[1] / "scripts" / "check_public_docs.py"
-PROJECT_ROOT = CHECKER.parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _run_checker(root: Path, *files: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             sys.executable,
-            str(CHECKER),
+            "-m",
+            "meia.check_public_docs",
             "--root",
             str(root),
             "--files",

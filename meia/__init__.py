@@ -64,7 +64,6 @@ from .atom_styles import (
     atom_color_override_mapping,
     compact_color_strengths,
     color_strength_mapping,
-    emphasize_subject,
     replace_selected_indices,
     resolved_color_strengths,
     validate_atom_selection_settings,

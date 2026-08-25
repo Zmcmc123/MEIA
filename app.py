@@ -1022,6 +1022,14 @@ def main() -> None:
     complexity = measure_display_complexity(len(atoms), output_context)
     st.subheader(i18n.text("viewer.title"))
     st.caption(i18n.text("viewer.interaction_caption"))
+    if complexity.large_3d_interaction:
+        st.caption(
+            i18n.text(
+                "viewer.large_system_notice",
+                source=complexity.source_atom_count,
+                instances=complexity.atom_instance_count,
+            )
+        )
     figure_3d = create_3d_figure(
         atoms,
         output_config,
