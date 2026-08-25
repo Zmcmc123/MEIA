@@ -16,6 +16,7 @@ MEIA is an atomistic-structure visualization application for interactive inspect
 - Read POSCAR/CONTCAR, CIF, XYZ, LAMMPS data, and other formats supported by ASE.
 - Rotate, pan, zoom, and select atoms in 3D, then apply the current view to the 2D projection.
 - Use covalent- or uniform-radius profiles and configure colours, bonds, hydrogen bonds, the unit cell, and periodic replicas.
+- Generate large-system 2D previews on demand, with subject emphasis, paged atom selection, and interaction-only layer simplification.
 - Import and export style presets and workspace snapshots, or batch-render multiple structures.
 - Export SVG, PNG, and PDF; SVG preserves editable groups.
 
@@ -79,6 +80,18 @@ Batch-rendering options:
 ```bash
 python -m meia.batch --help
 ```
+
+## Large-system behaviour and test example
+
+- Small structures still receive an automatic 2D preview. Above the complexity threshold, use **Generate/Update 2D Preview**. A stale preview remains visible for comparison but cannot be downloaded as the current image.
+- Final 2D rendering and every SVG/PNG/PDF export always use the complete data; MEIA does not label a downsampled result as final.
+- At 1,000 source atoms, the sidebar switches to 200-atom pages. 3D click/box selection, index ranges, and element selection remain available.
+- At 20,000 displayed atom instances, bond outlines and hydrogen bonds are hidden only during rotation or zoom and restored after interaction. Periodic expansion has a 50,000-instance safety cap.
+
+The public synthetic example contains a [6,246-atom slab-and-water structure](examples/MEIA_large_slab_water_6246.xyz)
+and its [workspace snapshot](examples/MEIA_large_slab_water_6246.workspace.meia.json).
+Import the structure to test the large sidebar. Import and confirm the snapshot to display `2×2×1`
+periodic copies (24,984 atom instances) with the first water molecule emphasized. This example is for performance and interaction testing, not a validated physical model.
 
 ## Optional: develop the 3D frontend
 

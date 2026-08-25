@@ -1,8 +1,8 @@
 # MEIA — 原子构型可视化需求规格与实现路径
 
-> 文档版本：1.7
+> 文档版本：1.8
 > 创建日期：2026-08-20
-> 状态：v0.11.0 MEIA 品牌、完整中英文界面、双尺寸档案与严格 schema v7 已实现
+> 状态：v0.11.0 功能基线已实现；大体系优化分支待真实体系稳定性验收
 
 ---
 
@@ -180,6 +180,18 @@ Python 包、导入路径和批处理入口统一为 `meia/`、`meia.*` 和 `pyt
 - 还原基准为当前会话最近一次成功应用的通用风格；若从未成功应用，则使用内置默认风格。仅上传未应用、无效风格和工作状态快照均不更新基准。
 - 还原同时清除上述模块尚未提交的控件草稿；原子选择表单在还原后换用新的控件身份，避免浏览器把已作废的序号、隐藏或化学键操作重新写回。
 
+### F5.1. 大体系交互与预览
+
+- 页面显示源原子数、实际周期显示实例数和 2D artist 估算值。复杂度使用隐藏原子过滤后的完整显示实例计算。
+- 2D artist 估算值达到 5,000 后，页面不在每次 Streamlit 重跑时自动渲染 Matplotlib；用户通过“生成/更新 2D 预览”显式生成完整结果。
+- 预览缓存同时绑定结构、可视化状态和已应用 2D 视角。状态变化后旧图可标记为过期供对照，但不能以当前文件名下载。批处理和最终 SVG/PNG/PDF 导出不使用该按需策略。
+- 源原子数从 1,000 起，侧栏原子选择使用 200 项分页窗口；当前选区摘要最多显示 20 个身份，不向 Streamlit 传送全部选项。
+- “强调当前选区为主体”以一个默认背景强度和少量主体例外表示；不在运行时创建数千条背景记录。严格 schema v7 导出时仍展开为原有逐原子语义。
+- 3D 缩放每帧仅使用一次批量 Plotly 数据/布局更新，并在约 80 ms 空闲后做最终同步；选择高亮只保留已选源原子的周期实例，屏幕点选/框选使用 36 px 网格索引。
+- 显示原子实例从 20,000 起，旋转或缩放期间仅临时隐藏化学键描边和氢键，约 120 ms 无交互后恢复。该状态不进入 JSON，不改变图层开关或导出。
+- 周期显示不得超过 50,000 个原子实例；超限时拒绝设置并给出明确诊断，不隐式降采样。
+- 结构成键、周期展开和氢键几何候选作为会话内单条 `RenderTopology` 缓存；仅颜色、强度、原子半径、键宽、相机或导出参数变化时复用，拓扑键不匹配时拒绝过期复用。
+
 ### F6. 导出
 
 - SVG（矢量，优先）— 可直接导入 Illustrator 后续编辑
@@ -189,7 +201,7 @@ Python 包、导入路径和批处理入口统一为 `meia/`、`meia.*` 和 `pyt
 - 页面 2D 预览固定显示为 `900×675` CSS px，内部使用 `1800×1350` PNG（2× 像素密度）；文件导出的 DPI 继续由导出设置独立控制
 - 文件式导出默认拒绝覆盖已有路径，只能由调用方显式授权覆盖
 - 页面图像、通用风格预设和工作状态快照的下载全部位于侧栏“导出”模块，主页面不再重复显示导出区。
-- `examples/CONTCAR`、`examples/meia-visual-state.workspace.meia.json`、`examples/CONTCAR_meia.svg`、`examples/CONTCAR_meia-2.svg` 和 `examples/CONTCAR_meia-2.png` 构成当前公开教程案例；工作状态快照使用严格 schema v7。示例仅用于复现教程流程，不代表普适的物理参数。
+- `examples/CONTCAR`、`examples/meia-visual-state.workspace.meia.json`、`examples/CONTCAR_meia.svg`、`examples/CONTCAR_meia-2.svg` 和 `examples/CONTCAR_meia-2.png` 构成当前公开教程案例；`MEIA_large_slab_water_6246.xyz` 及同名工作快照是大体系交互测试案例。工作状态快照使用严格 schema v7。两类示例均不代表经过验证的物理参数。
 
 ### F7. 批量处理
 
@@ -294,7 +306,11 @@ Python 包、导入路径和批处理入口统一为 `meia/`、`meia.*` 和 `pyt
 | `bonds.py` | 兼容式共价半径成键识别 | atoms, cutoff | `List[Bond]` |
 | `bond_rules.py` | 元素对距离规则、具体原子例外与最终可见键解析 | atoms, `BondSettings` | `BondResolution` |
 | `size_profiles.py` | 共价/相等两套独立原子半径与键宽档案、最终显示半径解析 | `SizeProfileSettings` / 元素序列 | 显示半径 / 活动键宽 |
-| `visual_state.py` | 视角、原子、化学键、晶胞与周期性、导出和具体原子的唯一已应用状态；只构建一次共享渲染上下文 | 模块状态 / atoms | `VisualizationState` / `RenderContext` |
+| `visual_state.py` | 视角、原子、化学键、晶胞与周期性、导出和具体原子的唯一已应用状态；保留一次性上下文兼容入口 | 模块状态 / atoms | `VisualizationState` / `RenderContext` |
+| `render_topology.py` | 为成键、周期显示和氢键候选构建显式缓存键，将拓扑与便宜的视觉样式组合分层 | atoms / `VisualizationState` | `RenderTopology` / `RenderContext` |
+| `display_complexity.py` | 统计可见原子、键与氢键实例并选择 2D/3D 交互策略 | source count / `RenderContext` | `DisplayComplexity` |
+| `preview_state.py` | 为 2D 字节产物维护当前/过期指纹和下载保护 | structure / state / camera fingerprint | `PreviewArtifact` / `PreviewStatus` |
+| `selection_paging.py` | 大体系侧栏分页选择和跨页并集/移除语义 | atom count / page / current selection | `AtomSelectionPage` / selected indices |
 | `sidebar.py` | 各模块缓冲表单和显式提交边界 | 已应用模块状态 | 完整候选模块状态或 `None` |
 | `atom_styles.py` | 统一选区、具体原子颜色、绝对色彩强度和成键例外操作 | atoms / `AtomSelectionSettings` | 原子化更新后的设置 / 色彩映射 |
 | `geometry.py` | 键的 2D 几何计算 | Bond, ProjectionResult | `BondGeometry`（矩形/椭圆参数） |
