@@ -10,6 +10,8 @@ MEIA is an atomistic-structure visualization application for interactive inspect
 
 > MEIA is under active development. It does not replace professional atomistic modelling software or guarantee physical correctness.
 
+[![MEIA 2D visualization feature overview](docs/images/readme/MEIA-feature-overview.en.png)](docs/images/readme/MEIA-feature-overview.en.svg)
+
 ## Features
 
 - Switch between Simplified Chinese and English; the choice is stored locally in the browser.

@@ -10,6 +10,8 @@ MEIA 是用于原子构型交互检查和出版级二维示意图制作的可视
 
 > MEIA 仍在开发中，不替代专业原子建模软件，也不保证物理结果正确。
 
+[![MEIA 2D 可视化功能概览](docs/images/readme/MEIA-feature-overview.zh-CN.png)](docs/images/readme/MEIA-feature-overview.zh-CN.svg)
+
 ## 功能概览
 
 - 中英文界面切换，语言选择保存在浏览器本地。
