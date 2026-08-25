@@ -7,6 +7,13 @@ from .i18n import I18n, Locale, LocalizedError
 __version__ = MEIA_VERSION
 
 from .config import RenderConfig
+from .display_complexity import (
+    EXTREME_3D_ATOM_THRESHOLD,
+    LARGE_3D_ATOM_THRESHOLD,
+    MANUAL_2D_ARTIST_THRESHOLD,
+    DisplayComplexity,
+    measure_display_complexity,
+)
 from .projection import project_atoms, ProjectionResult
 from .bonds import find_bonds, Bond
 from .bond_rules import (
