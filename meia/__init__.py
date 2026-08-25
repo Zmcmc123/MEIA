@@ -156,6 +156,14 @@ from .visual_state import (
     replace_view,
     resolve_render_context,
 )
+from .render_topology import (
+    RenderTopology,
+    TopologyCacheEntry,
+    TopologyKey,
+    build_render_topology,
+    compose_render_context,
+    topology_key,
+)
 from .size_profiles import (
     CovalentSizeProfile,
     RadiusMode,

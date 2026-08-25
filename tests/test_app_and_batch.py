@@ -134,6 +134,61 @@ def create_3d_figure(*args, **kwargs):
     return _create_3d_figure(*args, **kwargs)
 
 
+def test_app_reuses_topology_for_color_only_state_and_invalidates_for_pbc(
+    monkeypatch,
+):
+    atoms = Atoms(
+        "HO",
+        positions=[[0.0, 0.0, 0.0], [0.96, 0.0, 0.0]],
+        cell=[8.0, 8.0, 8.0],
+        pbc=True,
+    )
+    active = ActiveWorkspace.from_upload(atoms, "cache.xyz", b"cache")
+    state = VisualizationState()
+    calls = []
+    real_builder = app_module.build_render_topology
+
+    def counting_builder(*args, **kwargs):
+        calls.append(1)
+        return real_builder(*args, **kwargs)
+
+    monkeypatch.setattr(
+        app_module,
+        "st",
+        SimpleNamespace(session_state={}),
+    )
+    monkeypatch.setattr(app_module, "build_render_topology", counting_builder)
+
+    baseline = app_module._resolve_cached_render_context(active, state)
+    recolored = replace(
+        state,
+        style=replace(
+            state.style,
+            atom_cell=AtomCellSettings(element_colors={"O": "#00FF00"}),
+        ),
+    )
+    recolored_context = app_module._resolve_cached_render_context(
+        active,
+        recolored,
+    )
+    repeated = replace(
+        recolored,
+        style=replace(
+            recolored.style,
+            cell_periodic=replace(
+                recolored.style.cell_periodic,
+                a=PeriodicRange(0, 2),
+            ),
+        ),
+    )
+    app_module._resolve_cached_render_context(active, repeated)
+
+    assert len(calls) == 2
+    assert baseline.periodic_display is recolored_context.periodic_display
+    assert baseline.config.get_atom_colors(["O"])[0] != "#00FF00"
+    assert recolored_context.config.get_atom_colors(["O"])[0] == "#00FF00"
+
+
 def _app_test(app_path: str, *, locale: Locale = Locale.ZH_CN) -> AppTest:
     app = AppTest.from_file(app_path)
     app.session_state[APP_LOCALE_KEY] = locale.value
@@ -1016,10 +1071,10 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
         view_revision="test-view",
     )
     captured = {}
-    real_resolve_context = app_module.resolve_render_context
+    real_resolve_context = app_module._resolve_cached_render_context
 
-    def capture_resolve_context(resolved_atoms, resolved_state):
-        context = real_resolve_context(resolved_atoms, resolved_state)
+    def capture_resolve_context(resolved_active, resolved_state):
+        context = real_resolve_context(resolved_active, resolved_state)
         captured["base_context"] = context
         return context
 
@@ -1069,7 +1124,11 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
         "_initialize_applied_view",
         lambda *_args: applied_view,
     )
-    monkeypatch.setattr(app_module, "resolve_render_context", capture_resolve_context)
+    monkeypatch.setattr(
+        app_module,
+        "_resolve_cached_render_context",
+        capture_resolve_context,
+    )
     monkeypatch.setattr(app_module, "create_3d_figure", capture_create_3d_figure)
     monkeypatch.setattr(app_module, "atom_viewer", capture_atom_viewer)
     monkeypatch.setattr(app_module, "_apply_viewer_event", lambda *_args: None)

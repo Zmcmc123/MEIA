@@ -11,6 +11,7 @@ from matplotlib.patches import Circle
 
 import meia.periodic_display as periodic_display_module
 import meia.pipeline as pipeline_module
+import meia.render_topology as render_topology_module
 import meia.view as view_module
 import meia.visual_state as visual_state_module
 
@@ -648,7 +649,12 @@ def test_context_is_not_resolved_again_by_either_2d_entry_point(monkeypatch):
         calls["display"] += 1
         return real_build_display(*args, **kwargs)
 
-    for module in (visual_state_module, view_module, pipeline_module):
+    for module in (
+        visual_state_module,
+        render_topology_module,
+        view_module,
+        pipeline_module,
+    ):
         monkeypatch.setattr(
             module,
             "resolve_bonds",

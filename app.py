@@ -62,6 +62,12 @@ from meia.preview_state import (
     preview_status,
     should_render_preview,
 )
+from meia.render_topology import (
+    TopologyCacheEntry,
+    build_render_topology,
+    compose_render_context,
+    topology_key,
+)
 from meia.sidebar import (
     ATOM_SELECTION_DRAFT_REVISION_KEY,
     atom_selection_draft_widget_key,
@@ -118,6 +124,7 @@ VISUAL_STRUCTURE_ID_KEY = "meia_visual_state_structure_id"
 PENDING_SNAPSHOT_KEY = "meia_pending_workspace_snapshot"
 PENDING_SNAPSHOT_HASH_KEY = "meia_pending_workspace_snapshot_sha256"
 HANDLED_SNAPSHOT_HASH_KEY = "meia_handled_workspace_snapshot_sha256"
+TOPOLOGY_CACHE_KEY = "meia_render_topology_cache"
 SNAPSHOT_CONFIRMATION_KEY = "meia_snapshot_overwrite_confirmed"
 SNAPSHOT_CONFIRMATION_RESET_KEY = "meia_reset_snapshot_confirmation"
 RESET_STYLE_BASELINE_KEY = "meia_reset_style_baseline"
@@ -331,6 +338,37 @@ def _reset_visual_state_for_structure(
         _clear_buffered_visual_widgets()
         return state
     return load_visual_state(st.session_state)
+
+
+def _resolve_cached_render_context(
+    active: ActiveWorkspace,
+    state: VisualizationState,
+):
+    """Reuse one validated topology within the current Streamlit session."""
+    key = topology_key(
+        active.atoms,
+        state,
+        structure_id=active.structure_id,
+    )
+    cached = st.session_state.get(TOPOLOGY_CACHE_KEY)
+    if isinstance(cached, TopologyCacheEntry) and cached.key == key:
+        topology = cached.topology
+    else:
+        topology = build_render_topology(
+            active.atoms,
+            state,
+            structure_id=active.structure_id,
+        )
+        st.session_state[TOPOLOGY_CACHE_KEY] = TopologyCacheEntry(
+            key=topology.key,
+            topology=topology,
+        )
+    return compose_render_context(
+        active.atoms,
+        state,
+        topology,
+        structure_id=active.structure_id,
+    )
 
 
 def _style_import_notice(i18n: I18n | None = None) -> str:
@@ -964,7 +1002,7 @@ def main() -> None:
             count=len(atoms),
         )
     )
-    render_context = resolve_render_context(atoms, visual_state)
+    render_context = _resolve_cached_render_context(active, visual_state)
     diagnostic_notice = _periodic_diagnostic_notice(render_context, i18n)
     if diagnostic_notice is not None:
         st.warning(diagnostic_notice)

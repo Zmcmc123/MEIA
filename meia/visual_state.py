@@ -16,8 +16,6 @@ from matplotlib.colors import is_color_like, to_hex
 
 from .atom_styles import (
     AtomSelectionSettings,
-    atom_color_override_mapping,
-    color_strength_mapping,
     validate_atom_selection_settings,
 )
 from .bond_rules import (
@@ -37,25 +35,19 @@ from .config import RECOMMENDED_COLORS, RenderConfig
 from .hydrogen_bonds import (
     DisplayHydrogenBond,
     HydrogenBondSettings,
-    instantiate_periodic_hydrogen_bonds,
-    resolve_hydrogen_bond_candidates,
 )
 from .i18n import LocalizedError
 from .periodic_display import (
     CellPeriodicSettings,
     PeriodicDisplay,
-    build_periodic_display,
     normalize_periodic_settings,
 )
 from .size_profiles import (
-    RadiusMode,
     SizeProfileSettings,
     resolve_active_bond_width,
-    resolve_display_radii as resolve_profile_display_radii,
 )
 from .view_state import (
     CameraState,
-    camera_to_rotation_matrix,
     rotation_matrix_to_camera,
 )
 
@@ -421,109 +413,10 @@ def resolve_render_context(
     state: VisualizationState,
 ) -> RenderContext:
     """一次性解析所有已应用模块，供所有渲染入口共用。"""
-    if not isinstance(state, VisualizationState):
-        raise TypeError("可视化状态必须是 VisualizationState")
-    cell_periodic = normalize_periodic_settings(atoms, state.style.cell_periodic)
-    bond_width_ratio = resolve_active_bond_width(state.style.size_profiles)
-    bonds, bond_settings, bond_resolution = _resolve_context_bonds(
-        atoms,
-        state.style.bonds,
-        state.atom_selection.bond_overrides,
-        bond_width_ratio,
-    )
-    style = replace(
-        state.style,
-        bonds=bonds,
-        cell_periodic=cell_periodic,
-    )
-    available_pairs = tuple(rule.pair for rule in bonds.pair_rules)
-    validate_atom_selection_settings(atoms, state.atom_selection, available_pairs)
+    from .render_topology import build_render_topology, compose_render_context
 
-    color_strengths = color_strength_mapping(
-        state.atom_selection.color_strengths,
-        state.atom_selection.default_color_strength,
-    )
-    symbols = atoms.get_chemical_symbols()
-    display_radii = resolve_profile_display_radii(style.size_profiles, symbols)
-    element_radii: dict[str, float] = {}
-    for symbol, radius in zip(symbols, display_radii):
-        radius_value = float(radius)
-        previous = element_radii.setdefault(symbol, radius_value)
-        if previous != radius_value:
-            raise ValueError(f"元素 {symbol} 的显示半径解析不一致")
-    active_profile = (
-        style.size_profiles.covalent
-        if style.size_profiles.active_mode is RadiusMode.COVALENT
-        else style.size_profiles.uniform
-    )
-    config = RenderConfig(
-        radius_scale=active_profile.global_scale,
-        resolved_element_radii_angstrom=element_radii,
-        outline_width=style.atom_cell.outline_width,
-        bond_cutoff=bonds.defaults.bond_cutoff,
-        bond_width_ratio=bond_width_ratio,
-        bond_stroke_color=bonds.style.stroke_color,
-        bond_stroke_width=bonds.style.stroke_width,
-        transparent=style.export.transparent,
-        dpi=style.export.dpi,
-        rotation=style.view.rotation,
-        rotation_matrix=camera_to_rotation_matrix(style.view.camera),
-        show_unit_cell=cell_periodic.show_unit_cell,
-        custom_colors=dict(style.atom_cell.element_colors),
-        allowed_pairs=set(available_pairs),
-        atom_color_strengths=color_strengths,
-        atom_default_color_strength=(
-            state.atom_selection.default_color_strength
-        ),
-        atom_color_overrides=atom_color_override_mapping(
-            state.atom_selection.color_overrides
-        ),
-    )
-    rules_by_pair = {rule.pair: rule for rule in bonds.pair_rules}
-    periodic_topology_bonds = tuple(
-        bond
-        for bond in bond_resolution.matched
-        if rules_by_pair[bond.pair].participates_in_periodic_unwrap
-    )
-    periodic_display = build_periodic_display(
-        atoms,
-        bond_resolution.matched,
-        cell_periodic,
-        topology_bonds=periodic_topology_bonds,
-    )
-    hydrogen_settings = bonds.hydrogen_bonds
-    if hydrogen_settings.draw:
-        hydrogen_bond_candidates = resolve_hydrogen_bond_candidates(
-            atoms,
-            bond_resolution.matched,
-            max_hydrogen_oxygen_distance=(
-                hydrogen_settings.max_hydrogen_oxygen_distance
-            ),
-            min_angle_degrees=hydrogen_settings.min_angle_degrees,
-        )
-        hydrogen_bonds = instantiate_periodic_hydrogen_bonds(
-            atoms,
-            periodic_display,
-            hydrogen_bond_candidates,
-            state.atom_selection,
-            color_strengths,
-            default_color_strength=(
-                state.atom_selection.default_color_strength
-            ),
-        )
-    else:
-        hydrogen_bonds = ()
-    return RenderContext(
-        config=config,
-        bond_settings=bond_settings,
-        bond_resolution=bond_resolution,
-        periodic_topology_bonds=periodic_topology_bonds,
-        periodic_display=periodic_display,
-        hydrogen_bonds=hydrogen_bonds,
-        hidden_atom_indices=frozenset(
-            item.atom_index for item in state.atom_selection.hidden_atoms
-        ),
-    )
+    topology = build_render_topology(atoms, state)
+    return compose_render_context(atoms, state, topology)
 
 
 def replace_view(state: VisualizationState, view: ViewSettings) -> VisualizationState:
