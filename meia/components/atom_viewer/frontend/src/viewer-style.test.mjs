@@ -242,3 +242,51 @@ test("sparse selection contains only selected source replicas", async () => {
     "marker.color": [],
   })
 })
+
+
+test("sparse selection update keeps the rotated camera and scene span", async () => {
+  const { plotlySparseSelectionUpdate } = await loadViewerStyle()
+  const atomTrace = {
+    x: [0, 12],
+    y: [1, 13],
+    z: [2, 14],
+    customdata: [[0, "Si"], [1, "O"]],
+    meta: {
+      meia_role: "atoms",
+      meia_base_marker_sizes: [9, 7],
+      meia_source_atom_indices: [0, 1],
+    },
+  }
+  const rotatedCamera = {
+    eye: {x: -0.75, y: 1.25, z: 0.5},
+    up: {x: 0.1, y: 0.2, z: 0.9},
+    center: {x: 0.05, y: -0.1, z: 0},
+    projection: {type: "orthographic"},
+  }
+  const sceneSpan = {x: 4, y: 3, z: 2}
+
+  assert.deepEqual(
+    plotlySparseSelectionUpdate(
+      atomTrace,
+      [1],
+      1.5,
+      rotatedCamera,
+      sceneSpan,
+    ),
+    {
+      dataUpdate: {
+        x: [[12]],
+        y: [[13]],
+        z: [[14]],
+        customdata: [[[1, "O"]]],
+        "marker.size": [[10.5]],
+        "marker.color": [["rgba(255,213,79,0.55)"]],
+      },
+      layoutUpdate: {
+        "scene.camera": rotatedCamera,
+        "scene.aspectratio": sceneSpan,
+        "scene.aspectmode": "manual",
+      },
+    },
+  )
+})

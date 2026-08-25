@@ -34,8 +34,7 @@ import {
 } from "./selection-state.mjs"
 import {
   plotlyCombinedTraceUpdate,
-  plotlyUpdateForSingleTrace,
-  sparseSelectionTraceUpdate,
+  plotlySparseSelectionUpdate,
 } from "./viewer-style.mjs"
 import { SelectionSpatialIndex } from "./selection-spatial-index.mjs"
 import {
@@ -281,15 +280,17 @@ async function syncSelectionTrace() {
   if (atomTrace === undefined || selectionIndex < 0) {
     return
   }
-  const update = sparseSelectionTraceUpdate(
+  const update = plotlySparseSelectionUpdate(
     atomTrace,
     draftSelectedIndices,
     aspectRatioZoomScale(baseAspectRatio, draftAspectRatio),
+    draftCamera,
+    draftAspectRatio,
   )
   await Plotly.update(
     graph,
-    plotlyUpdateForSingleTrace(update),
-    {},
+    update.dataUpdate,
+    update.layoutUpdate,
     [selectionIndex],
   )
 }

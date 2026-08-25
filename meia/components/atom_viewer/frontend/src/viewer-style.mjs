@@ -168,6 +168,21 @@ export function sparseSelectionTraceUpdate(
 }
 
 
+export function plotlySparseSelectionUpdate(
+  atomTrace,
+  selectedIndices,
+  zoomScale,
+  camera,
+  aspectRatio,
+) {
+  return plotlyAtomicUpdateForSingleTrace(
+    sparseSelectionTraceUpdate(atomTrace, selectedIndices, zoomScale),
+    camera,
+    aspectRatio,
+  )
+}
+
+
 export function plotlyCombinedTraceUpdate(
   traces,
   zoomScale,
