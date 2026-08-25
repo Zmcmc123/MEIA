@@ -201,7 +201,7 @@ Python 包、导入路径和批处理入口统一为 `meia/`、`meia.*` 和 `pyt
 - 页面 2D 预览固定显示为 `900×675` CSS px，内部使用 `1800×1350` PNG（2× 像素密度）；文件导出的 DPI 继续由导出设置独立控制
 - 文件式导出默认拒绝覆盖已有路径，只能由调用方显式授权覆盖
 - 页面图像、通用风格预设和工作状态快照的下载全部位于侧栏“导出”模块，主页面不再重复显示导出区。
-- `examples/CONTCAR`、`examples/meia-visual-state.workspace.meia.json`、`examples/CONTCAR_meia.svg`、`examples/CONTCAR_meia-2.svg` 和 `examples/CONTCAR_meia-2.png` 构成当前公开教程案例；`MEIA_large_slab_water_6246.xyz` 及同名工作快照是大体系交互测试案例。工作状态快照使用严格 schema v7。两类示例均不代表经过验证的物理参数。
+- `examples/CONTCAR`、`examples/meia-visual-state.workspace.meia.json`、`examples/CONTCAR_meia.svg`、`examples/CONTCAR_meia-2.svg` 和 `examples/CONTCAR_meia-2.png` 构成当前公开教程案例；`MEIA_large_system_5x5_200H2O.xyz` 及同名工作快照是从该 CONTCAR 经 `5×5×1` 扩胞并新增 200 个 H₂O 得到的大体系交互测试案例，快照使用 `1×1×1` 周期显示。工作状态快照使用严格 schema v7。两类示例均不代表经过验证的物理参数。
 
 ### F7. 批量处理
 

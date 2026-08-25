@@ -88,10 +88,10 @@ python -m meia.batch --help
 - At 1,000 source atoms, the sidebar switches to 200-atom pages. 3D click/box selection, index ranges, and element selection remain available.
 - At 20,000 displayed atom instances, bond outlines and hydrogen bonds are hidden only during rotation or zoom and restored after interaction. Periodic expansion has a 50,000-instance safety cap.
 
-The public synthetic example contains a [6,246-atom slab-and-water structure](examples/MEIA_large_slab_water_6246.xyz)
-and its [workspace snapshot](examples/MEIA_large_slab_water_6246.workspace.meia.json).
-Import the structure to test the large sidebar. Import and confirm the snapshot to display `2×2×1`
-periodic copies (24,984 atom instances) with the first water molecule emphasized. This example is for performance and interaction testing, not a validated physical model.
+The public large-system example starts from the repository's `examples/CONTCAR`, repeats it `5×5×1`, and adds two layers containing 200 H₂O molecules in the vacuum region. It includes a
+[6,225-atom structure](examples/MEIA_large_system_5x5_200H2O.xyz) and its
+[workspace snapshot](examples/MEIA_large_system_5x5_200H2O.workspace.meia.json).
+Import the structure to test the large sidebar. Import and confirm the snapshot to use a `1×1×1` periodic display (6,225 atom instances) with the first added water molecule emphasized. This example is for performance and interaction testing, not a validated physical model.
 
 ## Optional: develop the 3D frontend
 
