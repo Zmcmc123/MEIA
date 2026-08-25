@@ -82,15 +82,6 @@ Batch-rendering options:
 python -m meia.batch --help
 ```
 
-## Large-system behaviour
-
-- Small structures still receive an automatic 2D preview. Above the complexity threshold, use **Generate/Update 2D Preview**. A stale preview remains visible for comparison but cannot be downloaded as the current image.
-- Final 2D rendering and every SVG/PNG/PDF export always use the complete data; MEIA does not label a downsampled result as final.
-- At 1,000 source atoms, the sidebar switches to 200-atom pages. 3D click/box selection, index ranges, and element selection remain available.
-- At 20,000 displayed atom instances, bond outlines and hydrogen bonds are hidden only during rotation or zoom and restored after interaction. Periodic expansion has a 50,000-instance safety cap.
-
-Developers can run `python -m meia.benchmark_large_system --help` to generate a deterministic slab-and-water workload locally and execute the performance benchmark. The repository no longer ships a large structure or workspace snapshot.
-
 ## Optional: develop the 3D frontend
 
 After changing the interactive 3D component, run:
