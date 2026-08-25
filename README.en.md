@@ -14,7 +14,6 @@ MEIA is an atomistic-structure visualization application for interactive inspect
 
 ## Features
 
-- Switch between Simplified Chinese and English; the choice is stored locally in the browser.
 - Read POSCAR/CONTCAR, CIF, XYZ, LAMMPS data, and other formats supported by ASE.
 - Rotate, pan, zoom, and select atoms in 3D, then hide or show certain atoms or chemical bonds.
 - Use covalent- or uniform-radius profiles and configure colours, bonds, hydrogen bonds, the unit cell, and periodic replicas.
