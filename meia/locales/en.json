@@ -247,6 +247,7 @@
   "export.apply": "Apply Export Settings",
   "export.apply_failed": "Export settings were not applied: {detail}",
   "export.generation_failed": "Export file generation failed: {detail}",
+  "export.image_unavailable": "No image matching the current settings is available. Generate or update the 2D preview first.",
   "export.download_image": "Download {format}",
   "export.download_style": "Download General Style Preset",
   "export.download_workspace": "Download Workspace Snapshot",
@@ -264,5 +265,10 @@
   "preview.title": "Flattened 2D Output",
   "preview.alt": "Flattened 2D atomic-structure preview",
   "preview.rendering": "Rendering the 2D illustration...",
+  "preview.complexity": "{source} source atoms; {instances} periodic display instances; approximately {artists} 2D artists.",
+  "preview.refresh": "Generate/Update 2D Preview",
+  "preview.missing": "No 2D preview has been generated in this session.",
+  "preview.stale": "The preview below is from the previous settings and no longer matches the current structure, style, or view.",
+  "preview.current": "The 2D preview matches the current structure, style, and view.",
   "preview.pixel_density": "Preview window: {width}×{height} px; internally rendered at 2× pixel density."
 }

@@ -26,6 +26,7 @@ from meia.brand import (
     WORKSPACE_JSON_SUFFIX,
 )
 from meia.bond_rules import normalize_element_pair
+from meia.display_complexity import measure_display_complexity
 from meia.export import export_figure
 from meia.i18n import I18n, Locale, LocalizedError
 from meia.io import StructureReadError, is_supported_structure_filename, read_structure
@@ -53,6 +54,13 @@ from meia.preview import (
     PREVIEW_CSS_WIDTH,
     preview_image_html,
     render_preview_png,
+)
+from meia.preview_state import (
+    PreviewArtifact,
+    PreviewKey,
+    PreviewStatus,
+    preview_status,
+    should_render_preview,
 )
 from meia.sidebar import (
     ATOM_SELECTION_DRAFT_REVISION_KEY,
@@ -113,6 +121,7 @@ HANDLED_SNAPSHOT_HASH_KEY = "meia_handled_workspace_snapshot_sha256"
 SNAPSHOT_CONFIRMATION_KEY = "meia_snapshot_overwrite_confirmed"
 SNAPSHOT_CONFIRMATION_RESET_KEY = "meia_reset_snapshot_confirmation"
 RESET_STYLE_BASELINE_KEY = "meia_reset_style_baseline"
+PREVIEW_ARTIFACT_KEY = "meia_2d_preview_artifact"
 THREE_D_INTERACTION_CAPTION = I18n(Locale.ZH_CN).text(
     "viewer.interaction_caption"
 )
@@ -693,22 +702,18 @@ def _render_global_forms(
 
 def _render_export_downloads(
     container,
-    figure_2d,
+    preview_artifact,
+    current_preview_key,
     active,
     state,
-    output_config,
     export_name,
     i18n: I18n | None = None,
 ) -> None:
-    """在侧栏导出容器中准备并发布图像、v6 风格和工作快照。"""
+    """发布 JSON，并且只在图像与当前状态一致时允许下载。"""
     i18n = i18n or I18n(Locale.ZH_CN)
     with container:
         safe_name = export_name.strip() or DEFAULT_EXPORT_STEM
         try:
-            export_format = state.style.export.format
-            image_bytes = export_figure(figure_2d, export_format, output_config)
-            if not image_bytes:
-                raise ValueError("image data was not generated")
             style_preset = build_style_preset(
                 state,
                 safe_name,
@@ -730,16 +735,27 @@ def _render_export_downloads(
             return
 
         stem = os.path.splitext(active.source_name)[0]
-        st.download_button(
-            label=i18n.text("export.download_image", format=export_format.upper()),
-            data=image_bytes,
-            file_name=f"{stem}_meia.{export_format}",
-            mime={
-                "svg": "image/svg+xml",
-                "png": "image/png",
-                "pdf": "application/pdf",
-            }.get(export_format, "application/octet-stream"),
+        artifact_is_current = (
+            isinstance(preview_artifact, PreviewArtifact)
+            and preview_artifact.key == current_preview_key
         )
+        if artifact_is_current:
+            export_format = preview_artifact.export_format
+            st.download_button(
+                label=i18n.text(
+                    "export.download_image",
+                    format=export_format.upper(),
+                ),
+                data=preview_artifact.export_bytes,
+                file_name=f"{stem}_meia.{export_format}",
+                mime={
+                    "svg": "image/svg+xml",
+                    "png": "image/png",
+                    "pdf": "application/pdf",
+                }.get(export_format, "application/octet-stream"),
+            )
+        else:
+            st.caption(i18n.text("export.image_unavailable"))
         st.download_button(
             label=i18n.text("export.download_style"),
             data=style_bytes,
@@ -997,41 +1013,108 @@ def main() -> None:
     _apply_viewer_event(raw_event, active, visual_state, applied_view, i18n)
 
     st.subheader(i18n.text("preview.title"))
-    with st.spinner(i18n.text("preview.rendering")):
-        figure_2d = render_2d(
-            atoms,
-            output_config,
-            render_context=output_context,
+    complexity = measure_display_complexity(len(atoms), output_context)
+    current_preview_key = PreviewKey.build(
+        active.structure_id,
+        visual_state,
+        applied_view.rotation_matrix,
+    )
+    preview_artifact = st.session_state.get(PREVIEW_ARTIFACT_KEY)
+    if (
+        not isinstance(preview_artifact, PreviewArtifact)
+        or preview_artifact.key.structure_id != active.structure_id
+    ):
+        preview_artifact = None
+        st.session_state.pop(PREVIEW_ARTIFACT_KEY, None)
+    status = preview_status(preview_artifact, current_preview_key)
+
+    refresh_requested = False
+    if complexity.manual_2d_recommended:
+        st.caption(
+            i18n.text(
+                "preview.complexity",
+                source=complexity.source_atom_count,
+                instances=complexity.atom_instance_count,
+                artists=complexity.estimated_2d_artist_count,
+            )
         )
-    preview_bytes = render_preview_png(
-        figure_2d,
-        transparent=output_config.transparent,
-    )
-    st.markdown(
-        preview_image_html(
-            preview_bytes,
-            alt_text=i18n.text("preview.alt"),
-        ),
-        unsafe_allow_html=True,
-    )
-    st.caption(
-        i18n.text(
-            "preview.pixel_density",
-            width=PREVIEW_CSS_WIDTH,
-            height=PREVIEW_CSS_HEIGHT,
+        refresh_requested = st.button(
+            i18n.text("preview.refresh"),
+            key="meia_refresh_2d_preview",
+            use_container_width=True,
         )
-    )
+
+    if should_render_preview(
+        complexity,
+        status,
+        refresh_requested=refresh_requested,
+    ):
+        figure_2d = None
+        try:
+            with st.spinner(i18n.text("preview.rendering")):
+                figure_2d = render_2d(
+                    atoms,
+                    output_config,
+                    render_context=output_context,
+                )
+                preview_bytes = render_preview_png(
+                    figure_2d,
+                    transparent=output_config.transparent,
+                )
+                export_format = visual_state.style.export.format
+                export_bytes = export_figure(
+                    figure_2d,
+                    export_format,
+                    output_config,
+                )
+                if not preview_bytes or not export_bytes:
+                    raise ValueError("preview or export image data was not generated")
+                preview_artifact = PreviewArtifact(
+                    key=current_preview_key,
+                    preview_png=preview_bytes,
+                    export_format=export_format,
+                    export_bytes=export_bytes,
+                )
+                st.session_state[PREVIEW_ARTIFACT_KEY] = preview_artifact
+                status = PreviewStatus.CURRENT
+        except Exception as exc:
+            st.error(i18n.error_text(exc, "export.generation_failed"))
+        finally:
+            if figure_2d is not None:
+                plt.close(figure_2d)
+
+    if status is PreviewStatus.MISSING:
+        st.caption(i18n.text("preview.missing"))
+    elif status is PreviewStatus.STALE:
+        st.caption(i18n.text("preview.stale"))
+    else:
+        st.caption(i18n.text("preview.current"))
+
+    if isinstance(preview_artifact, PreviewArtifact):
+        st.markdown(
+            preview_image_html(
+                preview_artifact.preview_png,
+                alt_text=i18n.text("preview.alt"),
+            ),
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            i18n.text(
+                "preview.pixel_density",
+                width=PREVIEW_CSS_WIDTH,
+                height=PREVIEW_CSS_HEIGHT,
+            )
+        )
 
     _render_export_downloads(
         download_container,
-        figure_2d,
+        preview_artifact,
+        current_preview_key,
         active,
         visual_state,
-        output_config,
         export_name,
         i18n,
     )
-    plt.close(figure_2d)
 
 
 if __name__ == "__main__":

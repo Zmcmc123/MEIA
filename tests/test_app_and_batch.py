@@ -38,6 +38,7 @@ from meia.atom_styles import (
     HiddenAtom,
 )
 from meia.config import RenderConfig
+from meia.display_complexity import DisplayComplexity
 from meia.bond_rules import (
     BondPairRule,
     BondResolution,
@@ -68,6 +69,7 @@ from meia.presets import (
     style_preset_to_json,
     workspace_snapshot_to_json,
 )
+from meia.preview_state import PreviewArtifact, PreviewKey
 from meia.sidebar import AtomFormSubmission, VISUAL_STATE_KEY
 from meia.size_profiles import (
     CovalentSizeProfile,
@@ -1039,8 +1041,9 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
         captured["viewer_messages"] = kwargs.get("messages")
         return None
 
-    def capture_export_downloads(_container, figure, *_args):
-        captured["export_figure"] = figure
+    def capture_export_downloads(_container, artifact, current_key, *_args):
+        captured["export_artifact"] = artifact
+        captured["export_current_key"] = current_key
 
     monkeypatch.setattr(app_module, "st", FakeStreamlit())
     monkeypatch.setattr(app_module, "load_default_style", lambda: default_style)
@@ -1070,13 +1073,17 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
     monkeypatch.setattr(app_module, "atom_viewer", capture_atom_viewer)
     monkeypatch.setattr(app_module, "_apply_viewer_event", lambda *_args: None)
     monkeypatch.setattr(app_module, "render_2d", capture_render_2d)
-    monkeypatch.setattr(app_module, "render_preview_png", lambda *_args, **_kwargs: b"")
+    monkeypatch.setattr(
+        app_module,
+        "render_preview_png",
+        lambda *_args, **_kwargs: b"png",
+    )
     monkeypatch.setattr(
         app_module,
         "preview_image_html",
         lambda _data, **_kwargs: "",
     )
-    monkeypatch.setattr(app_module, "export_figure", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(app_module, "export_figure", lambda *_args, **_kwargs: b"svg")
     monkeypatch.setattr(app_module, "_render_export_downloads", capture_export_downloads)
     monkeypatch.setattr(
         app_module,
@@ -1113,11 +1120,133 @@ def test_app_renderers_keep_one_context_and_fixed_interaction_caption(
     assert output_context.hydrogen_bonds is base_context.hydrogen_bonds
     assert len(output_context.hydrogen_bonds) == expected_hydrogen_count
     assert output_context.hidden_atom_indices is base_context.hidden_atom_indices
-    assert captured["export_figure"] is captured["figure_2d"]
+    assert isinstance(captured["export_artifact"], PreviewArtifact)
+    assert captured["export_artifact"].key == captured["export_current_key"]
     assert app_module.st.captions.count(THREE_D_INTERACTION_CAPTION) == 1
     assert all("氢键" not in caption for caption in app_module.st.captions)
     assert "3D 交互预览" in app_module.st.subheaders
     assert "📥 导出" not in app_module.st.subheaders
+
+
+def _run_main_with_manual_preview_policy(monkeypatch, *, refresh_clicked):
+    class FakeStreamlit:
+        def __init__(self):
+            self.session_state = {}
+            self.sidebar = self
+            self.buttons = []
+            self.captions = []
+
+        def expander(self, *_args, **_kwargs):
+            return nullcontext()
+
+        def spinner(self, *_args, **_kwargs):
+            return nullcontext()
+
+        def file_uploader(self, *_args, **_kwargs):
+            return None
+
+        def button(self, label, **_kwargs):
+            self.buttons.append(label)
+            return refresh_clicked and label == "生成/更新 2D 预览"
+
+        def caption(self, value, **_kwargs):
+            self.captions.append(value)
+
+        def __getattr__(self, _name):
+            return lambda *_args, **_kwargs: None
+
+    fake = FakeStreamlit()
+    atoms = Atoms("HO", positions=[[0, 0, 0], [0.96, 0, 0]])
+    active = ActiveWorkspace.from_upload(atoms, "large.xyz", b"large")
+    state = VisualizationState()
+    applied_view = AppliedViewState(
+        camera=CameraState(),
+        rotation_matrix=np.eye(3),
+        event_id=None,
+        view_revision="manual-preview",
+    )
+    calls = {"render_2d": 0, "preview_png": 0, "close": 0}
+
+    def capture_render_2d(*_args, **_kwargs):
+        calls["render_2d"] += 1
+        return plt.subplots()[0]
+
+    def capture_preview_png(*_args, **_kwargs):
+        calls["preview_png"] += 1
+        return b"png"
+
+    monkeypatch.setattr(app_module, "st", fake)
+    monkeypatch.setattr(
+        app_module,
+        "load_default_style",
+        lambda: SimpleNamespace(style=PortableStyle()),
+    )
+    monkeypatch.setattr(
+        app_module, "_active_workspace_from_upload", lambda _upload: (active, False)
+    )
+    monkeypatch.setattr(
+        app_module,
+        "_reset_visual_state_for_structure",
+        lambda *_args, **_kwargs: state,
+    )
+    monkeypatch.setattr(app_module, "_render_json_imports", lambda *_args: None)
+    monkeypatch.setattr(
+        app_module,
+        "_render_global_forms",
+        lambda *_args: (state, "large", nullcontext()),
+    )
+    monkeypatch.setattr(
+        app_module, "_initialize_applied_view", lambda *_args: applied_view
+    )
+    monkeypatch.setattr(app_module, "create_3d_figure", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(app_module, "atom_viewer", lambda **_kwargs: None)
+    monkeypatch.setattr(app_module, "_apply_viewer_event", lambda *_args: None)
+    monkeypatch.setattr(
+        app_module,
+        "measure_display_complexity",
+        lambda *_args: DisplayComplexity.from_counts(900, 900, 650, 200),
+        raising=False,
+    )
+    monkeypatch.setattr(app_module, "render_2d", capture_render_2d)
+    monkeypatch.setattr(app_module, "render_preview_png", capture_preview_png)
+    monkeypatch.setattr(app_module, "export_figure", lambda *_args, **_kwargs: b"svg")
+    monkeypatch.setattr(app_module, "preview_image_html", lambda *_args, **_kwargs: "")
+    monkeypatch.setattr(app_module, "_render_export_downloads", lambda *_args: None)
+    monkeypatch.setattr(
+        app_module, "_initialize_i18n", lambda: I18n(Locale.ZH_CN)
+    )
+    monkeypatch.setattr(app_module, "_render_locale_selector", lambda i18n: i18n)
+    real_close = plt.close
+
+    def capture_close(figure):
+        calls["close"] += 1
+        real_close(figure)
+
+    monkeypatch.setattr(app_module.plt, "close", capture_close)
+
+    app_module.main()
+    return fake, calls
+
+
+def test_large_system_skips_automatic_2d_preview(monkeypatch):
+    fake, calls = _run_main_with_manual_preview_policy(
+        monkeypatch,
+        refresh_clicked=False,
+    )
+
+    assert calls == {"render_2d": 0, "preview_png": 0, "close": 0}
+    assert "生成/更新 2D 预览" in fake.buttons
+    assert any("尚未生成" in text for text in fake.captions)
+
+
+def test_large_system_refresh_generates_one_current_artifact(monkeypatch):
+    fake, calls = _run_main_with_manual_preview_policy(
+        monkeypatch,
+        refresh_clicked=True,
+    )
+
+    assert calls == {"render_2d": 1, "preview_png": 1, "close": 1}
+    assert "生成/更新 2D 预览" in fake.buttons
 
 
 def test_cross_layer_periodic_identity_and_input_immutability(monkeypatch):
@@ -2037,16 +2166,16 @@ def test_sidebar_export_downloads_include_image_and_strict_v7_json(monkeypatch):
         )
     )
     fake = FakeDownloadStreamlit()
-    figure = plt.subplots()[0]
     monkeypatch.setattr(app_module, "st", fake)
-    monkeypatch.setattr(app_module, "export_figure", lambda *_args: b"<svg/>")
+    current_key = PreviewKey("structure", "style", "camera")
+    artifact = PreviewArtifact(current_key, b"png", "svg", b"<svg/>")
 
     _render_export_downloads(
         nullcontext(),
-        figure,
+        artifact,
+        current_key,
         active,
         state,
-        RenderConfig(),
         "   ",
     )
 
@@ -2067,46 +2196,51 @@ def test_sidebar_export_downloads_include_image_and_strict_v7_json(monkeypatch):
         "meia-visual-state.workspace.meia.json"
     )
     assert fake.errors == []
-    plt.close(figure)
 
 
-def test_sidebar_export_failure_stays_local_and_keeps_applied_state(monkeypatch):
-    """图像导出失败只在侧栏报错，不得更换已应用状态。"""
+def test_sidebar_export_without_current_image_keeps_json_downloads(monkeypatch):
+    """过期或缺失图像不得阻止风格与工作快照下载。"""
 
     class FakeDownloadStreamlit:
         def __init__(self):
             self.errors = []
+            self.captions = []
+            self.downloads = []
 
-        def download_button(self, **_kwargs):
-            raise AssertionError("导出失败时不应提供下载")
+        def download_button(self, **kwargs):
+            self.downloads.append(kwargs)
 
         def error(self, message):
             self.errors.append(message)
+
+        def caption(self, message):
+            self.captions.append(message)
 
     atoms = Atoms("H", positions=[[0, 0, 0]])
     active = ActiveWorkspace.from_upload(atoms, "fixture.xyz", b"fixture")
     state = VisualizationState(load_default_style().style)
     fake = FakeDownloadStreamlit()
-    figure = plt.subplots()[0]
     monkeypatch.setattr(app_module, "st", fake)
-
-    def fail_export(*_args):
-        raise ValueError("broken image")
-
-    monkeypatch.setattr(app_module, "export_figure", fail_export)
+    current_key = PreviewKey("structure", "style", "camera")
 
     _render_export_downloads(
         nullcontext(),
-        figure,
+        None,
+        current_key,
         active,
         state,
-        RenderConfig(),
         "paper-style",
     )
 
-    assert fake.errors == ["导出文件生成失败：ValueError: broken image"]
+    assert [item["label"] for item in fake.downloads] == [
+        "下载通用风格预设",
+        "下载工作状态快照",
+    ]
+    assert fake.captions == [
+        "当前设置尚无可下载图像；请先生成或更新 2D 预览。"
+    ]
+    assert fake.errors == []
     assert state == VisualizationState(load_default_style().style)
-    plt.close(figure)
 
 
 def test_app_removes_sidebar_view_preset_but_keeps_z_up_default_state():

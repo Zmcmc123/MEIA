@@ -247,6 +247,7 @@
   "export.apply": "应用导出设置",
   "export.apply_failed": "导出设置未应用：{detail}",
   "export.generation_failed": "导出文件生成失败：{detail}",
+  "export.image_unavailable": "当前设置尚无可下载图像；请先生成或更新 2D 预览。",
   "export.download_image": "下载 {format}",
   "export.download_style": "下载通用风格预设",
   "export.download_workspace": "下载工作状态快照",
@@ -264,5 +265,10 @@
   "preview.title": "2D 扁平化输出",
   "preview.alt": "2D 扁平化原子构型预览",
   "preview.rendering": "正在渲染 2D 图...",
+  "preview.complexity": "源原子 {source} 个；周期显示实例 {instances} 个；预计 2D 图元 {artists} 个。",
+  "preview.refresh": "生成/更新 2D 预览",
+  "preview.missing": "当前会话尚未生成 2D 预览。",
+  "preview.stale": "下方是上一次的 2D 预览，已与当前结构、样式或视角不一致。",
+  "preview.current": "2D 预览与当前结构、样式和视角一致。",
   "preview.pixel_density": "预览窗口 {width}×{height} px；内部以 2× 像素密度渲染。"
 }

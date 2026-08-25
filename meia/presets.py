@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from hashlib import sha256
 import json
 import math
 from pathlib import Path
@@ -634,6 +635,24 @@ def _atom_selection_mapping(settings: AtomSelectionSettings) -> dict[str, Any]:
             for item in settings.hydrogen_bond_overrides
         ],
     }
+
+
+def visual_state_fingerprint(state: VisualizationState) -> str:
+    """返回与对象身份无关的完整可视化状态指纹。"""
+    if not isinstance(state, VisualizationState):
+        raise TypeError("可视化状态必须是 VisualizationState")
+    payload = {
+        "style": _style_sections(state.style),
+        "atom_selection": _atom_selection_mapping(state.atom_selection),
+    }
+    canonical = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return sha256(canonical).hexdigest()
 
 
 def _encode_preset(root: Mapping[str, Any]) -> str:
