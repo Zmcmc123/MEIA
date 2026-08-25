@@ -21,6 +21,8 @@ from .atom_styles import (
     AtomHydrogenBondOverride,
     AtomSelectionSettings,
     HiddenAtom,
+    compact_color_strengths,
+    resolved_color_strengths,
     validate_atom_selection_settings,
 )
 from .bond_rules import (
@@ -594,7 +596,11 @@ def _style_sections(style: PortableStyle) -> dict[str, Any]:
     }
 
 
-def _atom_selection_mapping(settings: AtomSelectionSettings) -> dict[str, Any]:
+def _atom_selection_mapping(
+    settings: AtomSelectionSettings,
+    symbols: Sequence[str],
+) -> dict[str, Any]:
+    resolved_strengths = resolved_color_strengths(settings, len(symbols))
     return {
         "selected_indices": list(settings.selected_atom_indices),
         "color_overrides": [
@@ -605,6 +611,57 @@ def _atom_selection_mapping(settings: AtomSelectionSettings) -> dict[str, Any]:
             }
             for item in settings.color_overrides
         ],
+        "color_strengths": [
+            {
+                "atom_index": item.atom_index,
+                "atom_symbol": item.atom_symbol,
+                "strength": item.strength,
+            }
+            for item in (
+                AtomColorStrength(index, symbols[index], float(strength))
+                for index, strength in enumerate(resolved_strengths)
+                if strength != 1.0
+            )
+        ],
+        "bond_overrides": [
+            {
+                "atom_index": item.atom_index,
+                "atom_symbol": item.atom_symbol,
+                "elements": list(item.pair),
+                "visibility": item.visibility.value,
+            }
+            for item in settings.bond_overrides
+        ],
+        "hidden_atoms": [
+            {"atom_index": item.atom_index, "atom_symbol": item.atom_symbol}
+            for item in settings.hidden_atoms
+        ],
+        "hydrogen_bond_overrides": [
+            {
+                "atom_index": item.atom_index,
+                "atom_symbol": item.atom_symbol,
+                "visibility": item.visibility.value,
+            }
+            for item in settings.hydrogen_bond_overrides
+        ],
+    }
+
+
+def _runtime_atom_selection_mapping(
+    settings: AtomSelectionSettings,
+) -> dict[str, Any]:
+    """用紧凑运行语义编码指纹，不使用 v7 展开列表。"""
+    return {
+        "selected_indices": list(settings.selected_atom_indices),
+        "color_overrides": [
+            {
+                "atom_index": item.atom_index,
+                "atom_symbol": item.atom_symbol,
+                "color": item.color,
+            }
+            for item in settings.color_overrides
+        ],
+        "default_color_strength": settings.default_color_strength,
         "color_strengths": [
             {
                 "atom_index": item.atom_index,
@@ -643,7 +700,7 @@ def visual_state_fingerprint(state: VisualizationState) -> str:
         raise TypeError("可视化状态必须是 VisualizationState")
     payload = {
         "style": _style_sections(state.style),
-        "atom_selection": _atom_selection_mapping(state.atom_selection),
+        "atom_selection": _runtime_atom_selection_mapping(state.atom_selection),
     }
     canonical = json.dumps(
         payload,
@@ -707,7 +764,10 @@ def workspace_snapshot_to_json(snapshot: WorkspaceSnapshot) -> str:
         "cell_angstrom": [list(row) for row in snapshot.structure.cell_angstrom],
         "pbc": list(snapshot.structure.pbc),
     }
-    root["atom_selection"] = _atom_selection_mapping(snapshot.state.atom_selection)
+    root["atom_selection"] = _atom_selection_mapping(
+        snapshot.state.atom_selection,
+        snapshot.structure.symbols,
+    )
     return _encode_preset(root)
 
 
@@ -1037,7 +1097,10 @@ def _parse_structure(value: object) -> SnapshotStructure:
     )
 
 
-def _parse_atom_selection(value: object) -> AtomSelectionSettings:
+def _parse_atom_selection(
+    value: object,
+    symbols: Sequence[str],
+) -> AtomSelectionSettings:
     selection = _object(
         value,
         "atom_selection",
@@ -1077,6 +1140,14 @@ def _parse_atom_selection(value: object) -> AtomSelectionSettings:
                 item["atom_index"], item["atom_symbol"], item["strength"]
             )
         )
+    for item in strengths:
+        if item.atom_index >= len(symbols):
+            raise ValueError(f"原子序号 #{item.atom_index + 1} 超出当前构型范围")
+        if symbols[item.atom_index] != item.atom_symbol:
+            raise ValueError(
+                f"原子 #{item.atom_index + 1} 的元素不匹配："
+                f"预设为 {item.atom_symbol}，当前为 {symbols[item.atom_index]}"
+            )
     bond_overrides = []
     for index, raw_item in enumerate(
         _array(selection["bond_overrides"], "atom_selection.bond_overrides")
@@ -1125,13 +1196,21 @@ def _parse_atom_selection(value: object) -> AtomSelectionSettings:
                 item["atom_index"], item["atom_symbol"], item["visibility"]
             )
         )
+    expanded_strengths = np.ones(len(symbols), dtype=float)
+    for item in strengths:
+        expanded_strengths[item.atom_index] = item.strength
+    default_strength, compact_strengths = compact_color_strengths(
+        symbols,
+        expanded_strengths,
+    )
     return AtomSelectionSettings(
         selected_atom_indices=tuple(selected),
         color_overrides=tuple(colors),
-        color_strengths=tuple(strengths),
+        color_strengths=compact_strengths,
         bond_overrides=tuple(bond_overrides),
         hidden_atoms=tuple(hidden_atoms),
         hydrogen_bond_overrides=tuple(hydrogen_bond_overrides),
+        default_color_strength=default_strength,
     )
 
 
@@ -1213,12 +1292,16 @@ def parse_preset(payload: str | bytes) -> StylePreset | WorkspaceSnapshot:
             common | {"structure", "atom_selection"},
         )
         style = _parse_style(root)
+        structure = _parse_structure(root["structure"])
         return WorkspaceSnapshot(
             metadata=_parse_metadata(root),
-            structure=_parse_structure(root["structure"]),
+            structure=structure,
             state=VisualizationState(
                 style=style,
-                atom_selection=_parse_atom_selection(root["atom_selection"]),
+                atom_selection=_parse_atom_selection(
+                    root["atom_selection"],
+                    structure.symbols,
+                ),
             ),
         )
     except PresetError:

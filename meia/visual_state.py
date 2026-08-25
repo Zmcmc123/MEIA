@@ -440,7 +440,8 @@ def resolve_render_context(
     validate_atom_selection_settings(atoms, state.atom_selection, available_pairs)
 
     color_strengths = color_strength_mapping(
-        state.atom_selection.color_strengths
+        state.atom_selection.color_strengths,
+        state.atom_selection.default_color_strength,
     )
     symbols = atoms.get_chemical_symbols()
     display_radii = resolve_profile_display_radii(style.size_profiles, symbols)
@@ -471,6 +472,9 @@ def resolve_render_context(
         custom_colors=dict(style.atom_cell.element_colors),
         allowed_pairs=set(available_pairs),
         atom_color_strengths=color_strengths,
+        atom_default_color_strength=(
+            state.atom_selection.default_color_strength
+        ),
         atom_color_overrides=atom_color_override_mapping(
             state.atom_selection.color_overrides
         ),
@@ -503,6 +507,9 @@ def resolve_render_context(
             hydrogen_bond_candidates,
             state.atom_selection,
             color_strengths,
+            default_color_strength=(
+                state.atom_selection.default_color_strength
+            ),
         )
     else:
         hydrogen_bonds = ()

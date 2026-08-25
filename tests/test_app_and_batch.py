@@ -2458,7 +2458,7 @@ def test_create_3d_figure_uses_095_opacity_atoms_with_1px_black_outlines():
     atom_trace = next(trace for trace in fig.data if trace.name == "原子")
     assert atom_trace.marker.opacity == pytest.approx(0.95)
     assert atom_trace.marker.line.width == pytest.approx(1.0)
-    assert atom_trace.marker.line.color == "#000000"
+    assert list(atom_trace.marker.line.color) == ["#000000", "#000000"]
 
 
 def test_create_3d_figure_shows_draft_strength_and_multiple_selected_atoms():
@@ -2478,7 +2478,11 @@ def test_create_3d_figure_shows_draft_strength_and_multiple_selected_atoms():
 
     atom_trace = next(trace for trace in fig.data if trace.name == "原子")
     assert list(atom_trace.marker.color) == ["#F7F7F7", "#F5E3E3", "#3E4E68"]
-    assert atom_trace.marker.line.color == "#000000"
+    assert list(atom_trace.marker.line.color) == [
+        "#B2B2B2",
+        "#B2B2B2",
+        "#000000",
+    ]
     selected_trace = next(trace for trace in fig.data if trace.name == "批量选择")
     assert len(selected_trace.x) == 3
     assert selected_trace.meta["meia_role"] == "selection"

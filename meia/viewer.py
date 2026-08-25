@@ -9,7 +9,7 @@ import numpy as np
 import plotly.graph_objects as go
 from matplotlib.colors import to_rgb
 
-from .atom_styles import AtomSelectionSettings
+from .atom_styles import AtomSelectionSettings, apply_color_strength
 from .bond_segments import clip_bond_to_spheres
 from .bond_rules import (
     BondSettings,
@@ -99,6 +99,7 @@ def create_3d_figure(
     # 2D/3D、普通键和氢键裁剪共用同一组最终显示半径。
     source_radii = config.get_atom_radii(source_symbols)
     source_colors = config.get_atom_colors(source_symbols)
+    source_strengths = config.get_atom_color_strengths(len(atoms))
 
     if render_context is None:
         settings = bond_settings or initialize_bond_settings(atoms, config)
@@ -111,7 +112,6 @@ def create_3d_figure(
             CellPeriodicSettings(show_unit_cell=config.show_unit_cell),
         )
         candidates = resolve_hydrogen_bonds(atoms, matched_bonds)
-        source_strengths = config.get_atom_color_strengths(len(atoms))
         hydrogen_bonds = instantiate_periodic_hydrogen_bonds(
             atoms,
             periodic_display,
@@ -121,6 +121,7 @@ def create_3d_figure(
                 index: float(strength)
                 for index, strength in enumerate(source_strengths)
             },
+            default_color_strength=config.atom_default_color_strength,
         )
         hidden_atom_indices = frozenset()
     else:
@@ -148,6 +149,13 @@ def create_3d_figure(
     symbols = [source_symbols[index] for index in source_atom_indices]
     radii = source_radii[source_atom_indices]
     colors = [source_colors[index] for index in source_atom_indices]
+    source_outline_colors = [
+        apply_color_strength(ATOM_3D_OUTLINE_COLOR, strength)
+        for strength in source_strengths
+    ]
+    outline_colors = [
+        source_outline_colors[index] for index in source_atom_indices
+    ]
     customdata = [
         [
             int(instance.source_atom_index),
@@ -184,7 +192,7 @@ def create_3d_figure(
             color=colors,
             opacity=ATOM_3D_OPACITY,
             line=dict(
-                color=ATOM_3D_OUTLINE_COLOR,
+                color=outline_colors,
                 width=ATOM_3D_OUTLINE_WIDTH,
             ),
         ),

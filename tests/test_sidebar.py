@@ -1137,6 +1137,47 @@ def test_atom_selection_clear_has_highest_precedence(monkeypatch):
     assert result.selected_atom_indices == ()
 
 
+def test_atom_selection_form_emphasizes_subject_without_expanding_background(
+    monkeypatch,
+):
+    atoms = Atoms(symbols=["H"] * 5000, positions=[[0, 0, 0]] * 5000)
+    fake = FakeStreamlit(
+        submitted={"应用原子操作"},
+        values={
+            "当前选择（可搜索）": [3, 7],
+            "强调当前选区为主体": True,
+            "背景色彩强度": 30,
+        },
+    )
+    monkeypatch.setattr("meia.sidebar.st", fake)
+
+    result = render_atom_selection_form(AtomSelectionSettings(), atoms, ())
+
+    assert result is not None
+    assert result.selected_atom_indices == (3, 7)
+    assert result.default_color_strength == pytest.approx(0.30)
+    assert [(item.atom_index, item.strength) for item in result.color_strengths] == [
+        (3, 1.0),
+        (7, 1.0),
+    ]
+
+
+def test_atom_selection_form_rejects_subject_emphasis_without_selection(
+    monkeypatch,
+):
+    atoms = Atoms("HH", positions=[[0, 0, 0], [1, 0, 0]])
+    fake = FakeStreamlit(
+        submitted={"应用原子操作"},
+        values={"强调当前选区为主体": True},
+    )
+    monkeypatch.setattr("meia.sidebar.st", fake)
+
+    result = render_atom_selection_form(AtomSelectionSettings(), atoms, ())
+
+    assert result is None
+    assert fake.errors == ["请先选择至少一个主体原子。"]
+
+
 def test_atom_selection_reset_revision_uses_fresh_widget_identity(monkeypatch):
     """还原后选择表单应换用新 key，隔离浏览器仍持有的旧草稿。"""
     atoms = Atoms("HO", positions=[[0, 0, 0], [1, 0, 0]])

@@ -525,6 +525,35 @@ def test_render_context_resolves_specific_atom_style_and_bond_override_once():
     assert context.bond_settings.atom_overrides == state.atom_selection.bond_overrides
 
 
+def test_render_context_carries_compact_default_strength_into_2d_and_3d():
+    atoms = Atoms("HO", positions=[[0, 0, 0], [1.0, 0, 0]])
+    state = replace(
+        _default_state(),
+        atom_selection=AtomSelectionSettings(
+            color_strengths=(AtomColorStrength(0, "H", 1.0),),
+            default_color_strength=0.30,
+        ),
+    )
+
+    context = resolve_render_context(atoms, state)
+    figure = create_3d_figure(
+        atoms,
+        context.config,
+        render_context=context,
+    )
+    atom_trace = next(
+        trace
+        for trace in figure.data
+        if trace.meta and trace.meta.get("meia_role") == "atoms"
+    )
+
+    assert context.config.atom_default_color_strength == pytest.approx(0.30)
+    assert context.config.atom_color_strengths == {0: 1.0}
+    assert np.allclose(context.config.get_atom_color_strengths(2), [1.0, 0.30])
+    assert list(atom_trace.marker.line.color) == ["#000000", "#B2B2B2"]
+    assert atom_trace.marker.line.width == pytest.approx(1.0)
+
+
 def test_render_context_carries_one_bond_resolution_and_periodic_display():
     """缺少最终 matched 拓扑或周期实例时，统一上下文契约必须失败。"""
     atoms = Atoms(

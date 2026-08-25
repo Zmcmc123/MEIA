@@ -64,6 +64,68 @@ def test_color_strength_rejects_values_outside_absolute_unit_interval(strength):
         styles.apply_color_strength("#DFA3A3", strength)
 
 
+def test_subject_emphasis_keeps_subject_selection_and_compacts_background():
+    styles = _styles_module()
+    atoms = Atoms(symbols=["H"] * 5000)
+    current = styles.AtomSelectionSettings(selected_atom_indices=(3, 7))
+
+    updated = styles.emphasize_subject(atoms, current, 0.30)
+
+    assert updated.selected_atom_indices == (3, 7)
+    assert updated.default_color_strength == pytest.approx(0.30)
+    assert [(item.atom_index, item.strength) for item in updated.color_strengths] == [
+        (3, 1.0),
+        (7, 1.0),
+    ]
+    values = styles.resolved_color_strengths(updated, len(atoms))
+    assert values[3] == pytest.approx(1.0)
+    assert values[7] == pytest.approx(1.0)
+    assert values[4999] == pytest.approx(0.30)
+
+
+def test_strength_operation_compacts_against_profile_default():
+    styles = _styles_module()
+    atoms = Atoms("HH", positions=np.zeros((2, 3)))
+    current = styles.AtomSelectionSettings(
+        selected_atom_indices=(0,),
+        color_strengths=(styles.AtomColorStrength(0, "H", 1.0),),
+        default_color_strength=0.30,
+    )
+
+    restored_to_default = styles.apply_atom_selection_operation(
+        atoms,
+        current,
+        styles.AtomSelectionOperation(strength=0.30),
+        available_pairs=(),
+    )
+    assert restored_to_default.color_strengths == ()
+
+    retained_full_strength = styles.apply_atom_selection_operation(
+        atoms,
+        restored_to_default,
+        styles.AtomSelectionOperation(strength=1.0),
+        available_pairs=(),
+    )
+    assert [
+        (item.atom_index, item.strength)
+        for item in retained_full_strength.color_strengths
+    ] == [(0, 1.0)]
+
+
+def test_render_config_fills_from_default_strength_then_applies_exceptions():
+    config = RenderConfig(
+        atom_default_color_strength=0.30,
+        atom_color_strengths={0: 1.0},
+    )
+
+    assert np.allclose(config.get_atom_color_strengths(3), [1.0, 0.30, 0.30])
+    assert config.get_atom_outline_colors(3) == [
+        "#231815",
+        "#BDBAB9",
+        "#BDBAB9",
+    ]
+
+
 def test_render_config_applies_strength_once_to_fill_and_atom_outline():
     """重复读取颜色不得在已经弱化的结果上再次衰减。"""
     config = RenderConfig(

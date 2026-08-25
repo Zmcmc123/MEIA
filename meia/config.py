@@ -84,8 +84,16 @@ class RenderConfig:
     atom_color_overrides: Mapping[int, str] = field(default_factory=dict)
     # 新增字段只追加到末尾，保持旧位置参数的含义不变。
     resolved_element_radii_angstrom: Optional[Mapping[str, float]] = None
+    atom_default_color_strength: float = 1.0
 
     def __post_init__(self) -> None:
+        from .atom_styles import normalize_color_strength
+
+        object.__setattr__(
+            self,
+            "atom_default_color_strength",
+            normalize_color_strength(self.atom_default_color_strength),
+        )
         if self.resolved_element_radii_angstrom is not None:
             from ase.data import atomic_numbers
 
@@ -189,7 +197,11 @@ class RenderConfig:
     def get_atom_color_strengths(self, atom_count: int) -> np.ndarray:
         from .atom_styles import normalize_color_strength
 
-        values = np.ones(atom_count, dtype=float)
+        values = np.full(
+            atom_count,
+            self.atom_default_color_strength,
+            dtype=float,
+        )
         for atom_index, strength in self.atom_color_strengths.items():
             if (
                 isinstance(atom_index, bool)

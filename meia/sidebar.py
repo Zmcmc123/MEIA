@@ -16,6 +16,7 @@ from .atom_styles import (
     AtomSelectionOperation,
     AtomSelectionSettings,
     apply_atom_selection_operation,
+    emphasize_subject,
     parse_atom_index_expression,
     replace_selected_indices,
     validate_atom_selection_settings,
@@ -892,6 +893,20 @@ def render_atom_selection_form(
             format="%d%%",
             key=draft_key("meia_atom_selection_strength"),
         )
+        emphasize_current_selection = st.checkbox(
+            i18n.text("selection.emphasize_subject"),
+            value=False,
+            key=draft_key("meia_atom_selection_emphasize_subject"),
+        )
+        background_strength_percent = st.slider(
+            i18n.text("selection.background_strength"),
+            0,
+            100,
+            30,
+            5,
+            format="%d%%",
+            key=draft_key("meia_atom_selection_background_strength"),
+        )
         change_visibility = st.checkbox(
             i18n.text("selection.change_visibility"),
             value=False,
@@ -976,6 +991,12 @@ def render_atom_selection_form(
             operation,
             pairs,
         )
+        if emphasize_current_selection:
+            updated = emphasize_subject(
+                atoms,
+                updated,
+                background_strength_percent / 100.0,
+            )
         validate_atom_selection_settings(atoms, updated, pairs)
         return updated
     except (TypeError, ValueError) as exc:

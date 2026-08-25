@@ -18,6 +18,8 @@ from meia.atom_styles import (
     AtomHydrogenBondOverride,
     AtomSelectionSettings,
     HiddenAtom,
+    compact_color_strengths,
+    resolved_color_strengths,
 )
 from meia.bond_rules import (
     AtomBondOverride,
@@ -47,6 +49,7 @@ from meia.presets import (
     parse_preset,
     style_preset_to_json,
     workspace_snapshot_to_json,
+    visual_state_fingerprint,
 )
 from meia.view_state import CameraState
 from meia.visual_state import (
@@ -551,6 +554,77 @@ def test_workspace_snapshot_round_trip_restores_structure_and_all_atom_state():
     assert np.array_equal(atoms.positions, [[0, 0, 0], [1.2, 0, 0], [2.4, 0, 0]])
     assert np.array_equal(atoms.pbc, [True, True, False])
     assert recovered == snapshot
+
+
+def test_v7_workspace_expands_compact_background_and_recompacts_on_import():
+    atoms = Atoms(symbols=["H"] * 5000, positions=np.zeros((5000, 3)))
+    selection = AtomSelectionSettings(
+        selected_atom_indices=(3, 7),
+        color_strengths=(
+            AtomColorStrength(3, "H", 1.0),
+            AtomColorStrength(7, "H", 1.0),
+        ),
+        default_color_strength=0.30,
+    )
+    snapshot = WorkspaceSnapshot(
+        metadata=_metadata(PresetKind.WORKSPACE_SNAPSHOT),
+        structure=SnapshotStructure.from_atoms(atoms, "large.xyz"),
+        state=VisualizationState(load_default_style().style, selection),
+    )
+
+    payload = workspace_snapshot_to_json(snapshot)
+    decoded = json.loads(payload)
+    recovered = parse_preset(payload)
+
+    assert set(decoded["atom_selection"]) == {
+        "selected_indices",
+        "color_overrides",
+        "color_strengths",
+        "bond_overrides",
+        "hidden_atoms",
+        "hydrogen_bond_overrides",
+    }
+    assert decoded["schema_version"] == 7
+    assert len(decoded["atom_selection"]["color_strengths"]) == 4998
+    assert isinstance(recovered, WorkspaceSnapshot)
+    recovered_settings = recovered.state.atom_selection
+    assert recovered_settings.default_color_strength == pytest.approx(0.30)
+    assert [
+        (item.atom_index, item.strength)
+        for item in recovered_settings.color_strengths
+    ] == [(3, 1.0), (7, 1.0)]
+    assert np.array_equal(
+        resolved_color_strengths(recovered_settings, len(atoms)),
+        resolved_color_strengths(selection, len(atoms)),
+    )
+
+
+def test_normalized_equivalent_strength_profiles_share_state_fingerprint():
+    symbols = ("H", "H", "H", "H")
+    expanded = AtomSelectionSettings(
+        color_strengths=(
+            AtomColorStrength(0, "H", 0.30),
+            AtomColorStrength(1, "H", 0.30),
+            AtomColorStrength(2, "H", 0.30),
+        )
+    )
+    default, exceptions = compact_color_strengths(
+        symbols,
+        resolved_color_strengths(expanded, len(symbols)),
+    )
+    normalized = AtomSelectionSettings(
+        color_strengths=exceptions,
+        default_color_strength=default,
+    )
+    compact = AtomSelectionSettings(
+        color_strengths=(AtomColorStrength(3, "H", 1.0),),
+        default_color_strength=0.30,
+    )
+
+    assert normalized == compact
+    assert visual_state_fingerprint(
+        VisualizationState(atom_selection=normalized)
+    ) == visual_state_fingerprint(VisualizationState(atom_selection=compact))
 
 
 @pytest.mark.parametrize(

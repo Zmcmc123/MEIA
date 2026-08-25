@@ -342,6 +342,8 @@ def instantiate_periodic_hydrogen_bonds(
     candidates: Sequence[HydrogenBondCandidate],
     atom_selection: AtomSelectionSettings,
     color_strengths: Mapping[int, float],
+    *,
+    default_color_strength: float = 1.0,
 ) -> tuple[DisplayHydrogenBond, ...]:
     """把几何候选映射到已请求的三个周期原子显示实例。"""
     if not isinstance(atoms, Atoms):
@@ -360,6 +362,7 @@ def instantiate_periodic_hydrogen_bonds(
         int(index): normalize_color_strength(value)
         for index, value in color_strengths.items()
     }
+    default_strength = normalize_color_strength(default_color_strength)
     base_shifts = periodic_display.base_image_shifts
     seen: set[
         tuple[str, AtomInstanceKey, AtomInstanceKey, AtomInstanceKey]
@@ -417,7 +420,9 @@ def instantiate_periodic_hydrogen_bonds(
             if identity in seen:
                 continue
             seen.add(identity)
-            strength = min(strengths.get(index, 1.0) for index in participants)
+            strength = min(
+                strengths.get(index, default_strength) for index in participants
+            )
             donor_instance = periodic_display.atom_by_key[donor_key]
             hydrogen_instance = periodic_display.atom_by_key[hydrogen_key]
             acceptor_instance = periodic_display.atom_by_key[acceptor_key]

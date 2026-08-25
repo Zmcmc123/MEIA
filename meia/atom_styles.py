@@ -112,7 +112,9 @@ def _canonical_color_overrides(
 
 def _canonical_overrides(
     overrides: Iterable[AtomColorStrength],
+    default_strength: float = 1.0,
 ) -> tuple[AtomColorStrength, ...]:
+    default = normalize_color_strength(default_strength)
     values = tuple(overrides)
     if not all(isinstance(item, AtomColorStrength) for item in values):
         raise TypeError("具体原子色彩强度必须由 AtomColorStrength 组成")
@@ -120,7 +122,7 @@ def _canonical_overrides(
     for item in values:
         if item.atom_index in by_index:
             raise ValueError(f"原子 #{item.atom_index + 1} 的色彩强度重复")
-        if item.strength < 1.0:
+        if item.strength != default:
             by_index[item.atom_index] = item
     return tuple(by_index[index] for index in sorted(by_index))
 
@@ -128,9 +130,10 @@ def _canonical_overrides(
 def validate_atom_color_strengths(
     atoms: Atoms,
     overrides: Sequence[AtomColorStrength],
+    default_strength: float = 1.0,
 ) -> None:
     """验证原子索引与当前构型的元素身份完全一致。"""
-    canonical = _canonical_overrides(overrides)
+    canonical = _canonical_overrides(overrides, default_strength)
     symbols = atoms.get_chemical_symbols()
     for item in canonical:
         if item.atom_index >= len(symbols):
@@ -144,9 +147,13 @@ def validate_atom_color_strengths(
 
 def color_strength_mapping(
     overrides: Sequence[AtomColorStrength],
+    default_strength: float = 1.0,
 ) -> dict[int, float]:
     """把类型化覆盖转换为渲染配置使用的索引映射。"""
-    return {item.atom_index: item.strength for item in _canonical_overrides(overrides)}
+    return {
+        item.atom_index: item.strength
+        for item in _canonical_overrides(overrides, default_strength)
+    }
 
 
 def atom_color_override_mapping(
@@ -246,6 +253,7 @@ class AtomSelectionSettings:
     bond_overrides: tuple[object, ...] = ()
     hidden_atoms: tuple[HiddenAtom, ...] = ()
     hydrogen_bond_overrides: tuple[AtomHydrogenBondOverride, ...] = ()
+    default_color_strength: float = 1.0
 
     def __post_init__(self) -> None:
         selected = tuple(self.selected_atom_indices)
@@ -258,8 +266,12 @@ class AtomSelectionSettings:
         object.__setattr__(
             self, "color_overrides", _canonical_color_overrides(self.color_overrides)
         )
+        default_strength = normalize_color_strength(self.default_color_strength)
+        object.__setattr__(self, "default_color_strength", default_strength)
         object.__setattr__(
-            self, "color_strengths", _canonical_overrides(self.color_strengths)
+            self,
+            "color_strengths",
+            _canonical_overrides(self.color_strengths, default_strength),
         )
         object.__setattr__(
             self, "bond_overrides", _canonical_bond_overrides(self.bond_overrides)
@@ -305,6 +317,82 @@ def replace_selected_indices(
             message_params={"count": atom_count},
         )
     return replace(settings, selected_atom_indices=tuple(sorted(set(selected))))
+
+
+def resolved_color_strengths(
+    settings: AtomSelectionSettings,
+    atom_count: int,
+):
+    """展开默认强度和少量例外，供渲染边界使用。"""
+    import numpy as np
+
+    if not isinstance(settings, AtomSelectionSettings):
+        raise TypeError("原子选择设置必须是 AtomSelectionSettings")
+    if (
+        isinstance(atom_count, bool)
+        or not isinstance(atom_count, int)
+        or atom_count < 0
+    ):
+        raise ValueError("原子数量必须是非负整数")
+    values = np.full(atom_count, settings.default_color_strength, dtype=float)
+    for item in settings.color_strengths:
+        if item.atom_index >= atom_count:
+            raise ValueError(f"原子序号 #{item.atom_index + 1} 超出当前构型范围")
+        values[item.atom_index] = item.strength
+    return values
+
+
+def compact_color_strengths(
+    symbols: Sequence[str],
+    strengths: Sequence[object],
+) -> tuple[float, tuple[AtomColorStrength, ...]]:
+    """以最常见强度为默认值，将完整序列压缩为例外。"""
+    symbol_values = tuple(symbols)
+    normalized = tuple(normalize_color_strength(value) for value in strengths)
+    if len(symbol_values) != len(normalized):
+        raise ValueError("原子元素数量与色彩强度数量不一致")
+    if not normalized:
+        return 1.0, ()
+    counts: dict[float, int] = {}
+    for value in normalized:
+        counts[value] = counts.get(value, 0) + 1
+    default = max(
+        counts,
+        key=lambda value: (counts[value], value == 1.0, -value),
+    )
+    exceptions = tuple(
+        AtomColorStrength(index, symbol, value)
+        for index, (symbol, value) in enumerate(zip(symbol_values, normalized))
+        if value != default
+    )
+    return default, exceptions
+
+
+def emphasize_subject(
+    atoms: Atoms,
+    settings: AtomSelectionSettings,
+    background_strength: object,
+) -> AtomSelectionSettings:
+    """保留当前小选区为全强度主体，用单一默认值弱化背景。"""
+    if not isinstance(atoms, Atoms):
+        raise TypeError("主体强调必须绑定 ASE Atoms")
+    validate_atom_selection_settings(atoms, settings)
+    if not settings.selected_atom_indices:
+        raise LocalizedError(
+            "请先选择至少一个主体原子",
+            message_key="selection.subject_required",
+        )
+    value = normalize_color_strength(background_strength)
+    symbols = atoms.get_chemical_symbols()
+    return replace(
+        settings,
+        default_color_strength=value,
+        color_strengths=tuple(
+            AtomColorStrength(index, symbols[index], 1.0)
+            for index in settings.selected_atom_indices
+            if value != 1.0
+        ),
+    )
 
 
 @dataclass(frozen=True)
@@ -402,7 +490,11 @@ def validate_atom_selection_settings(
             )
     for item in settings.color_overrides:
         _validate_atom_identity(symbols, item.atom_index, item.atom_symbol)
-    validate_atom_color_strengths(atoms, settings.color_strengths)
+    validate_atom_color_strengths(
+        atoms,
+        settings.color_strengths,
+        settings.default_color_strength,
+    )
 
     allowed = (
         {normalize_element_pair(*pair) for pair in available_pairs}
@@ -464,7 +556,7 @@ def apply_atom_selection_operation(
             colors.pop(atom_index, None)
 
         if operation.strength is not None:
-            if operation.strength == 1.0:
+            if operation.strength == settings.default_color_strength:
                 strengths.pop(atom_index, None)
             else:
                 strengths[atom_index] = AtomColorStrength(
@@ -512,6 +604,7 @@ def apply_atom_selection_operation(
         bond_overrides=tuple(bonds.values()),
         hidden_atoms=tuple(hidden.values()),
         hydrogen_bond_overrides=tuple(hydrogen_bonds.values()),
+        default_color_strength=settings.default_color_strength,
     )
     validate_atom_selection_settings(atoms, candidate, normalized_pairs)
     return candidate

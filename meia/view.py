@@ -65,6 +65,7 @@ def render_2d(
             resolve_hydrogen_bond_candidates(atoms, resolution.matched),
             AtomSelectionSettings(),
             config.atom_color_strengths,
+            default_color_strength=config.atom_default_color_strength,
         )
         hidden_atom_indices = frozenset()
 
