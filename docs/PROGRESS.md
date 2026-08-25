@@ -90,7 +90,7 @@
 
 ### 大体系真实浏览器验收
 
-从该分支在 8511 端口启动全新 Streamlit 进程，先用 225 原子的公开 CONTCAR 验证普通规模仍自动生成 2D，再导入公开的大体系工作快照。验收结果：
+从该分支在 8512 端口启动全新 Streamlit 进程，并从空白会话直接导入基于 CONTCAR 的新大体系工作快照。验收结果：
 
 1. 快照成功恢复 6,225 个源原子和 `1×1×1` 周期范围，页面报告 6,225 个显示实例、预计 29,200 个 2D 图元。
 2. 大体系不再自动生成 2D，而是显示“生成/更新 2D 预览”和“当前会话尚未生成 2D 预览”；本次浏览器验收没有触发这项高成本手动渲染，完整 2D 路径由上表基准和自动测试覆盖。
@@ -101,5 +101,5 @@
 ### 分支完整验证
 
 - `python -m compileall -q app.py meia scripts tests` 与 `python scripts/check_public_docs.py` 均退出 0；公开文档检查覆盖 15 个 Markdown 文件。
-- `python -m pytest -W error::FutureWarning -q`：473 项通过，保留 11 条来自现有 Matplotlib/Pyparsing 组合的弃用警告。
+- `python -m pytest -W error::FutureWarning -q`：474 项通过，保留 11 条来自现有 Matplotlib/Pyparsing 组合的弃用警告。
 - 三维前端 `npm test`：62/62 通过；`npm run build` 成功转换 168 个模块。`npm ci` 仍报告 1 项仅开发依赖的高危告警，`npm audit --omit=dev` 报告 0 项生产依赖漏洞；构建仍有大分块建议，本分支没有使用强制升级处理。
