@@ -116,7 +116,7 @@ python -m pytest -W error::FutureWarning --strict-markers -q
 
 MEIA 是源码可用（source-available）软件，根据 [PolyForm Noncommercial License 1.0.0](LICENSE.md) 提供：
 
-- 个人学习、业余项目和无预期商业应用的研究实验可免费使用。
+- 个人学习、业余项目和研究实验可免费使用。
 - 慈善机构、教育机构、公共科研机构、公共安全或卫生机构、环境保护机构和政府机构可按许可条款免费使用。
 - 企业、个体经营者或其他商业组织的任何业务相关使用，包括内部科研，均需要单独的书面商业许可。详见 [`license/COMMERCIAL.md`](license/COMMERCIAL.md)。
 
