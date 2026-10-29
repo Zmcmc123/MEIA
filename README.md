@@ -8,7 +8,7 @@ Xiaomei_974 & codex
 
 MEIA 是用于原子构型交互检查和出版级二维示意图制作的可视化应用。软件使用 ASE 读取构型，通过 Streamlit、Plotly 和 Matplotlib 完成交互、渲染与导出。
 
-> MEIA 仍在开发中，不替代专业原子建模软件，也不保证物理结果正确。
+> MEIA 仍在开发中，欢迎各位老师同学交流使用体验，共同提高软件绘图质量。
 
 [![MEIA 2D 可视化功能概览](docs/images/readme/MEIA-feature-overview.zh-CN.png)](docs/images/readme/MEIA-feature-overview.zh-CN.svg)
 
